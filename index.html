@@ -251,8 +251,16 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <div class="field"><label>Distributor Cost ($)</label><input id="cc" type="number" step="0.01" placeholder="9.20" oninput="calcPrice()"></div>
       <div class="field"><label>Flat Shipping Cost ($)</label><input id="cs" type="number" step="0.01" placeholder="11.99" oninput="calcPrice()"></div>
       <div class="field"><label>Order Quantity</label><input id="cq2" type="number" placeholder="25" oninput="calcPrice()"></div>
-      <div class="field"><label>Target Margin</label>
-        <select id="cm" onchange="calcPrice()"><option value="0.17">17% — Standard Ammo</option><option value="0.20">20% — Defensive / Premium</option><option value="0.25">25% — Parts & Accessories</option><option value="0.30">30% — Custom</option></select></div>
+      <div class="field"><label>Target Markup</label>
+        <select id="cm" onchange="calcPrice()">
+          <option value="0.17">17% — Standard Ammo</option>
+          <option value="0.20">20% — Defensive / Premium Ammo</option>
+          <option value="0.25">25% — Parts & LPKs</option>
+          <option value="0.25">25% — Upper Receivers</option>
+          <option value="0.25">25% — Optics & Mounts</option>
+          <option value="0.30">30% — Accessories & Gear</option>
+          <option value="0.30">30% — Custom / Specialty</option>
+        </select></div>
 
 ```
   <div class="field"><label>NE Sales Tax</label>
