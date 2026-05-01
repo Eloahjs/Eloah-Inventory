@@ -245,36 +245,46 @@ select.fsel:focus{border-color:var(--gold-dim)}
 
 <div id="page-calc" class="page">
   <div class="ptitle">PRICE <span>CALCULATOR</span></div>
-  <div class="psub">Enter cost details to get a recommended sell price</div>
+  <div class="psub">Select a SKU to auto-fill, or enter manually — then apply to catalog</div>
   <div style="max-width:500px">
     <div class="fgrid">
+      <div class="field s2"><label>SKU (auto-fills cost, shipping & distributor)</label>
+        <select id="csku" onchange="skuSelected()">
+          <option value="">— Select SKU or enter manually below —</option>
+        </select></div>
+      <div class="field s2"><label>Distributor (auto-fills shipping)</label>
+        <select id="cdist" onchange="distChanged()">
+          <option value="">— Select Distributor —</option>
+          <option value="11.99">2nd Amendment Wholesale — $11.99 flat</option>
+          <option value="17.99">Midwest Gun Works — $17.99 flat</option>
+          <option value="0">Bear Creek Arsenal — Free (threshold met)</option>
+          <option value="8.49_at3">AT3 Tactical — $8.49 under $150 / Free over</option>
+          <option value="20">MGE Wholesale — $20.00 flat</option>
+          <option value="custom">Other / Enter manually</option>
+        </select></div>
       <div class="field"><label>Distributor Cost ($)</label><input id="cc" type="number" step="0.01" placeholder="9.20" oninput="calcPrice()"></div>
       <div class="field"><label>Flat Shipping Cost ($)</label><input id="cs" type="number" step="0.01" placeholder="11.99" oninput="calcPrice()"></div>
       <div class="field"><label>Order Quantity</label><input id="cq2" type="number" placeholder="25" oninput="calcPrice()"></div>
       <div class="field"><label>Target Markup</label>
         <select id="cm" onchange="calcPrice()">
-          <option value="0.17">17% — Standard Ammo</option>
-          <option value="0.20">20% — Defensive / Premium Ammo</option>
-          <option value="0.25">25% — Parts & LPKs</option>
+          <option value="0.20">20% — Standard Ammo</option>
+          <option value="0.25">25% — Defensive / Premium Ammo</option>
+          <option value="0.22">22% — Parts & LPKs</option>
           <option value="0.25">25% — Upper Receivers</option>
           <option value="0.25">25% — Optics & Mounts</option>
-          <option value="0.30">30% — Accessories & Gear</option>
-          <option value="0.30">30% — Custom / Specialty</option>
+          <option value="0.28">28% — Accessories & Gear</option>
+          <option value="0.35">35% — Custom / Specialty</option>
         </select></div>
-
-```
-  <div class="field"><label>NE Sales Tax</label>
-    <select id="ctx" onchange="calcPrice()">
-      <option value="0">Don't include</option>
-      <option value="0.055">5.5% — NE State only</option>
-      <option value="0.07">7.0% — York County</option>
-      <option value="0.0725">7.25% — Lincoln / Lancaster Co.</option>
-      <option value="0.075">7.5% — Omaha / Douglas Co.</option>
-    </select></div>
-</div>
-<div id="cresult"></div>
-```
-
+      <div class="field"><label>NE Sales Tax</label>
+        <select id="ctx" onchange="calcPrice()">
+          <option value="0">Don't include</option>
+          <option value="0.055">5.5% — NE State only</option>
+          <option value="0.07" selected>7.0% — York County</option>
+          <option value="0.0725">7.25% — Lincoln / Lancaster Co.</option>
+          <option value="0.075">7.5% — Omaha / Douglas Co.</option>
+        </select></div>
+    </div>
+    <div id="cresult"></div>
   </div>
 </div>
 
@@ -381,7 +391,7 @@ select.fsel:focus{border-color:var(--gold-dim)}
 
 <script>
 // ── PASSWORD ──
-const PASS = 'Jayhawks!03272021'; // ← Change to your password
+const PASS = 'Jayhawks!03272021';
 function checkPW(){
   if(document.getElementById('pw-inp').value===PASS){
     document.getElementById('pw-gate').classList.add('hidden');
@@ -456,7 +466,8 @@ function goPage(id,btn){
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
-  ({dashboard:renderDashboard,catalog:renderCatalog,orders:renderOrders,log:renderLog,calc:calcPrice})[id]?.();
+  if(id==='calc'){populateCalcSKUs();calcPrice();}
+  else ({dashboard:renderDashboard,catalog:renderCatalog,orders:renderOrders,log:renderLog})[id]?.();
 }
 
 // ── DASHBOARD ──
@@ -563,39 +574,132 @@ function renderLog(){
     </div>`).join('')||`<div class="empty">No log entries</div>`;
 }
 
+// ── DISTRIBUTOR AUTO-FILL ──
+function populateCalcSKUs(){
+  const sel=document.getElementById('csku');
+  if(!sel) return;
+  const current=sel.value;
+  sel.innerHTML='<option value="">— Select SKU or enter manually below —</option>';
+  SKUS.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s.id;
+    opt.textContent=s.id+' — '+s.name;
+    sel.appendChild(opt);
+  });
+  if(current) sel.value=current;
+}
+
+function skuSelected(){
+  const id=document.getElementById('csku').value;
+  if(!id) return;
+  const s=SKUS.find(x=>x.id===id);
+  if(!s) return;
+  // Fill cost
+  if(s.cost!=null) document.getElementById('cc').value=s.cost;
+  // Fill distributor and shipping
+  const distMap={
+    '2nd Amendment Wholesale':'11.99',
+    'Midwest Gun Works':'17.99',
+    'Bear Creek Arsenal':'0',
+    'AT3 Tactical':'8.49_at3',
+    'MGE Wholesale':'20'
+  };
+  const distVal=distMap[s.dist]||'custom';
+  setSel('cdist',distVal);
+  // Fill shipping
+  const shipField=document.getElementById('cs');
+  if(distVal==='custom'){
+    shipField.value=s.ship!=null?s.ship:'';
+    shipField.readOnly=false;
+  } else if(distVal==='8.49_at3'){
+    shipField.value=(s.cost||0)>=150?0:8.49;
+    shipField.readOnly=false;
+  } else {
+    shipField.value=parseFloat(distVal)||0;
+    shipField.readOnly=true;
+  }
+  calcPrice();
+}
+function distChanged(){
+  const val=document.getElementById('cdist').value;
+  const shipField=document.getElementById('cs');
+  const cost=parseFloat(document.getElementById('cc').value)||0;
+  if(val==='custom'||val===''){
+    shipField.placeholder='Enter shipping';
+    shipField.readOnly=false;
+  } else if(val==='8.49_at3'){
+    // AT3: free over $150, $8.49 under
+    const ship=cost>=150?0:8.49;
+    shipField.value=ship;
+    shipField.readOnly=false;
+    shipField.placeholder=cost>=150?'Free (over $150)':'$8.49 (under $150)';
+  } else {
+    shipField.value=val;
+    shipField.readOnly=true;
+  }
+  calcPrice();
+}
+
 // ── PRICE CALC ──
 function calcPrice(){
   const cost=parseFloat(document.getElementById('cc').value)||0;
+  // Re-evaluate AT3 shipping if selected and cost changed
+  const distVal=document.getElementById('cdist').value;
+  if(distVal==='8.49_at3'){
+    document.getElementById('cs').value=cost>=150?0:8.49;
+  }
   const ship=parseFloat(document.getElementById('cs').value)||0;
   const qty=parseInt(document.getElementById('cq2').value)||1;
   const tgt=parseFloat(document.getElementById('cm').value)||0.17;
-  const gb=0;
   const tax=parseFloat(document.getElementById('ctx').value)||0;
+  const selectedSKU=document.getElementById('csku')?.value||'';
   const out=document.getElementById('cresult');
   if(!cost){out.innerHTML='';return;}
   const spu=ship/qty;
   const tc=cost+spu;
+  // Suggested price based on markup target only — tax is NOT included
   const minS=tc*(1+tgt);
   const sug=Math.ceil(minS*20)/20;
   const net=sug-cost-spu;
   const ma=sug>0?net/cost:0;
+  const taxAmt=sug*tax;
+  const custTotal=sug+taxAmt;
   out.innerHTML=`
     <div class="crbox">
       <div class="crow"><span class="cl">Distributor Cost</span><span>${f$(cost)}</span></div>
       <div class="crow"><span class="cl">Shipping per Unit (${f$(ship)} ÷ ${qty})</span><span>${f$(spu)}</span></div>
       <div class="crow"><span class="cl">Total Cost per Unit</span><span>${f$(tc)}</span></div>
-      ${gb?`<div class="crow"><span class="cl">GunBroker Fee (${(gb*100).toFixed(0)}%)</span><span>${f$(sug*gb)}</span></div>`:''}
-      ${tax?`<div class="crow"><span class="cl">NE Sales Tax (${(tax*100).toFixed(1)}%)</span><span>${f$(sug*tax)}</span></div>`:''}
-      <div class="crow tot"><span>Net Profit @ suggested</span><span class="tgreen">${f$(net)}</span></div>
+      <div class="crow tot"><span>Your Net Profit</span><span class="tgreen">${f$(net)}</span></div>
       <div class="crow tot"><span>Markup</span><span class="tgreen">${fp(ma)}</span></div>
     </div>
     <div class="csug">
-      <div><div class="csug-lbl">Suggested Sell Price</div><div class="csug-price">${f$(sug)}</div>
-        <div style="font-size:11px;color:var(--silver);margin-top:2px">Meets ${(tgt*100).toFixed(0)}% target</div></div>
+      <div><div class="csug-lbl">Your Sell Price</div><div class="csug-price">${f$(sug)}</div>
+        <div style="font-size:11px;color:var(--silver);margin-top:2px">Meets ${(tgt*100).toFixed(0)}% markup target</div></div>
       <div style="font-size:12px;color:var(--silver);line-height:2">
         Break-even: ${f$(tc)}<br>Min sell: ${f$(minS)}
       </div>
-    </div>`;
+    </div>
+    ${tax?`<div style="background:rgba(200,168,75,0.05);border:1px solid var(--border);border-radius:4px;padding:12px 16px;margin-top:8px;font-size:13px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--silver);margin-bottom:8px">Customer Pays (Tax Collected for State — Not Your Revenue)</div>
+      <div class="crow"><span class="cl">Your Sell Price</span><span>${f$(sug)}</span></div>
+      <div class="crow"><span class="cl">+ Sales Tax (${(tax*100).toFixed(1)}%)</span><span>${f$(taxAmt)}</span></div>
+      <div class="crow tot"><span>Customer Total</span><span class="tgold">${f$(custTotal)}</span></div>
+    </div>`:''}
+    ${selectedSKU?`<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="btn bgold" onclick="applyToCatalog(${sug})">✓ Apply $${sug.toFixed(2)} to Catalog — ${selectedSKU}</button>
+      <div style="font-size:11px;color:var(--silver)">Updates sell price for this SKU</div>
+    </div>`:''}`;
+}
+
+function applyToCatalog(price){
+  const id=document.getElementById('csku').value;
+  if(!id){toast('No SKU selected','err');return;}
+  const idx=SKUS.findIndex(s=>s.id===id);
+  if(idx<0){toast('SKU not found','err');return;}
+  SKUS[idx].sell=parseFloat(price.toFixed(2));
+  save();
+  toast('Sell price updated — '+id);
+  renderCatalog();
 }
 
 // ── MODAL OPEN ──
@@ -808,9 +912,9 @@ function addMsg(role,text){
   el.innerHTML=`<div class="mav">${role==='user'?'YOU':'ET'}</div><div class="mbody"><div class="mwho">${role==='user'?'You':'Claude'}</div><div class="mtxt">${fmtAI(text)}</div></div>`;
   msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;
 }
-let tc=0;
+let _typingCount=0;
 function addTyping(){
-  const id='t'+(++tc),msgs=document.getElementById('ai-msgs');
+  const id='t'+(++_typingCount),msgs=document.getElementById('ai-msgs');
   const el=document.createElement('div');el.className='msg ai';el.id=id;
   el.innerHTML=`<div class="mav">ET</div><div class="mbody"><div class="mwho">Claude</div><div class="mtxt"><span class="typing"><span></span><span></span><span></span></span></div></div>`;
   msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;return id;
