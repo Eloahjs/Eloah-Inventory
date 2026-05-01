@@ -1,4 +1,4 @@
-</script<!DOCTYPE html>
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -264,7 +264,13 @@ select.fsel:focus{border-color:var(--gold-dim)}
 
 ```
   <div class="field"><label>NE Sales Tax</label>
-    <select id="ctx" onchange="calcPrice()"><option value="0">Don't include</option><option value="0.055">5.5% NE State</option></select></div>
+    <select id="ctx" onchange="calcPrice()">
+      <option value="0">Don't include</option>
+      <option value="0.055">5.5% — NE State only</option>
+      <option value="0.07">7.0% — York County</option>
+      <option value="0.0725">7.25% — Lincoln / Lancaster Co.</option>
+      <option value="0.075">7.5% — Omaha / Douglas Co.</option>
+    </select></div>
 </div>
 <div id="cresult"></div>
 ```
@@ -819,7 +825,5 @@ function aiKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();}
 renderDashboard();
 </script>
 
-</body>
-</html>>
 </body>
 </html>
