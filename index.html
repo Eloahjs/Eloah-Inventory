@@ -205,7 +205,7 @@ select.fsel:focus{border-color:var(--gold-dim)}
   <div class="slabel">Recent Inventory Movement</div>
   <div class="twrap"><table class="tbl"><thead><tr><th>Date</th><th>SKU</th><th>Product</th><th>Type</th><th>Qty</th><th>Party</th></tr></thead><tbody id="dash-log"></tbody></table></div>
   <div class="slabel">Active Inventory</div>
-  <div class="twrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>On Hand</th><th>Sell Price</th><th>Margin</th><th>Status</th></tr></thead><tbody id="dash-inv"></tbody></table></div>
+  <div class="twrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>On Hand</th><th>Sell Price</th><th>Markup</th><th>Status</th></tr></thead><tbody id="dash-inv"></tbody></table></div>
 </div>
 
 <div id="page-catalog" class="page">
@@ -214,11 +214,10 @@ select.fsel:focus{border-color:var(--gold-dim)}
   <div class="toolbar">
     <div class="swrap"><span class="sico">⌕</span><input id="cq" placeholder="Search SKU, product, brand…" oninput="renderCatalog()"></div>
     <select class="fsel" id="cdept" onchange="renderCatalog()"><option value="">All Depts</option><option>Ammunition</option><option>AR15</option><option>Parts</option></select>
-    <select class="fsel" id="cstat" onchange="renderCatalog()"><option value="">All Status</option><option>Good Margin</option><option>Needs Price</option><option>Raise Price</option></select>
     <button class="btn boutline bsm" onclick="exportCSV('skus')">↓ CSV</button>
     <button class="btn bgold" onclick="openMod('msku','')">+ Add SKU</button>
   </div>
-  <div class="twrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>Dept</th><th>Distributor</th><th>Cost</th><th>Sell</th><th>Margin</th><th>On Hand</th><th>Decision</th><th></th></tr></thead><tbody id="cat-body"></tbody></table></div>
+  <div class="twrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>Dept</th><th>Distributor</th><th>Cost</th><th>Sell</th><th>Markup</th><th>On Hand</th><th></th></tr></thead><tbody id="cat-body"></tbody></table></div>
 </div>
 
 <div id="page-orders" class="page">
@@ -368,7 +367,7 @@ select.fsel:focus{border-color:var(--gold-dim)}
 
 <script>
 // ── PASSWORD ──
-const PASS = 'Jayhawks!03272021'; // ← Change to your password
+const PASS = 'et2026tactical'; // ← Change to your password
 function checkPW(){
   if(document.getElementById('pw-inp').value===PASS){
     document.getElementById('pw-gate').classList.add('hidden');
@@ -425,11 +424,11 @@ function onHand(id){
 }
 function dec(s){
   if(!s.cost||!s.sell) return {lbl:'Needs Price',cls:'bs'};
-  const m=(s.sell-s.cost)/s.sell;
-  if(m<(s.margin||0.17)) return {lbl:'Raise Price',cls:'br'};
-  return {lbl:'Good Margin',cls:'bg'};
+  const mu=(s.sell-s.cost)/s.cost;
+  if(mu<0.17) return {lbl:'Raise Price',cls:'br'};
+  return {lbl:'Good Markup',cls:'bg'};
 }
-function marg(s){return (s.sell&&s.cost)?((s.sell-s.cost)/s.sell):null;}
+function marg(s){return (s.sell&&s.cost)?((s.sell-s.cost)/s.cost):null;}
 function f$(v){return v!=null&&v!==''?'$'+parseFloat(v).toFixed(2):'—';}
 function fp(v){return v!=null?(v*100).toFixed(1)+'%':'—';}
 function td(){return new Date().toISOString().slice(0,10);}
@@ -490,11 +489,9 @@ function renderDashboard(){
 function renderCatalog(){
   const q=(document.getElementById('cq').value||'').toLowerCase();
   const dp=document.getElementById('cdept').value;
-  const st=document.getElementById('cstat').value;
   const rows=SKUS.filter(s=>{
     if(q&&!(s.id.toLowerCase().includes(q)||s.name.toLowerCase().includes(q)||s.brand.toLowerCase().includes(q)))return false;
     if(dp&&s.dept!==dp)return false;
-    if(st&&dec(s).lbl!==st)return false;
     return true;
   });
   document.getElementById('cat-body').innerHTML=rows.map(s=>{
@@ -505,11 +502,10 @@ function renderCatalog(){
       <td class="tsilv">${s.brand}</td><td class="tsilv">${s.dept}</td>
       <td style="font-size:11px;color:var(--silver)">${s.dist}</td>
       <td>${f$(s.cost)}</td><td>${f$(s.sell)}</td>
-      <td class="${m!=null&&m<(s.margin||0.17)?'tred':m!=null?'tgreen':''}">${fp(m)}</td>
+      <td class="${m!=null&&m<0.17?'tred':m!=null&&m<=0.20?'tgreen':m!=null?'tgold':''}">${fp(m)}</td>
       <td class="${low?'torange':q===0?'tsilv':''}">${q}${low?' ⚠':''}</td>
-      <td><span class="badge ${d.cls}">${d.lbl}</span></td>
       <td><button class="btn bghost bsm" onclick="event.stopPropagation();openMod('msku','${s.id}')">Edit</button></td>
-    </tr>`;}).join('')||`<tr><td colspan="11" class="empty">No results</td></tr>`;
+    </tr>`;}).join('')||`<tr><td colspan="10" class="empty">No results</td></tr>`;
 }
 
 // ── ORDERS ──
@@ -565,10 +561,10 @@ function calcPrice(){
   if(!cost){out.innerHTML='';return;}
   const spu=ship/qty;
   const tc=cost+spu;
-  const minS=tc/(1-tgt-gb);
+  const minS=tc*(1+tgt);
   const sug=Math.ceil(minS*20)/20;
-  const net=sug-cost-spu-(sug*gb);
-  const ma=sug>0?net/sug:0;
+  const net=sug-cost-spu;
+  const ma=sug>0?net/cost:0;
   out.innerHTML=`
     <div class="crbox">
       <div class="crow"><span class="cl">Distributor Cost</span><span>${f$(cost)}</span></div>
@@ -577,7 +573,7 @@ function calcPrice(){
       ${gb?`<div class="crow"><span class="cl">GunBroker Fee (${(gb*100).toFixed(0)}%)</span><span>${f$(sug*gb)}</span></div>`:''}
       ${tax?`<div class="crow"><span class="cl">NE Sales Tax (${(tax*100).toFixed(1)}%)</span><span>${f$(sug*tax)}</span></div>`:''}
       <div class="crow tot"><span>Net Profit @ suggested</span><span class="tgreen">${f$(net)}</span></div>
-      <div class="crow tot"><span>Actual Margin</span><span class="tgreen">${fp(ma)}</span></div>
+      <div class="crow tot"><span>Markup</span><span class="tgreen">${fp(ma)}</span></div>
     </div>
     <div class="csug">
       <div><div class="csug-lbl">Suggested Sell Price</div><div class="csug-price">${f$(sug)}</div>
@@ -745,8 +741,8 @@ function delLog(){
 function exportCSV(type){
   let h,rows,fn;
   if(type==='skus'){
-    h=['SKU','Brand','Dept','Category','Product','Distributor','Cost','Ship','Sell','Margin%','OnHand','Decision'];
-    rows=SKUS.map(s=>[s.id,s.brand,s.dept,s.cat||'',s.name,s.dist,s.cost||'',s.ship||'',s.sell||'',(s.margin*100).toFixed(0)+'%',onHand(s.id),dec(s).lbl]);
+    h=['SKU','Brand','Dept','Category','Product','Distributor','Cost','Ship','Sell','Markup%','OnHand'];
+    rows=SKUS.map(s=>[s.id,s.brand,s.dept,s.cat||'',s.name,s.dist,s.cost||'',s.ship||'',s.sell||'',(s.margin*100).toFixed(0)+'%',onHand(s.id)]);
     fn='eloah-skus.csv';
   } else if(type==='orders'){
     h=['Order#','Date','Customer','SKU','Qty','Price','Ship','Source','Payment','ShipStatus','Notes'];
@@ -765,9 +761,9 @@ function exportCSV(type){
 
 // ── AI ──
 function buildCtx(){
-  const cat=SKUS.map(s=>({...s,onHand:onHand(s.id),decision:dec(s).lbl,actualMargin:fp(marg(s))}));
+  const cat=SKUS.map(s=>({...s,onHand:onHand(s.id),actualMarkup:fp(marg(s))}));
   return `You are the AI assistant for Eloah Tactical LLC, a Nebraska-based order-on-demand firearms accessories and ammo e-commerce business run by John.
-SETTINGS: Min net $15/order | Margins: 17% ammo, 20% defensive, 25% parts | No-ship: CA IL MA NJ NY CT HI | GunTab payments | Wave invoicing | Website sales only
+SETTINGS: Min net $15/order | Markup target: 17-20% (markup on cost) | No-ship: CA IL MA NJ NY CT HI | GunTab payments | Wave invoicing | Website sales only
 DISTRIBUTORS: 2nd Amendment Wholesale $11.99 flat (primary PMC), Midwest Gun Works variable (parts/Norma/Sig/Hornady), MGE Wholesale $20 flat (backup), Bear Creek Arsenal, AT3 Tactical
 STATS: SKUs:${SKUS.length} | OnHand:${SKUS.reduce((a,s)=>a+onHand(s.id),0)} | Revenue:$${ORDS.reduce((a,o)=>a+(+o.price||0),0).toFixed(0)} | Orders:${ORDS.length} | GoodMargin:${SKUS.filter(s=>dec(s).lbl==='Good Margin').length} | NeedsPrice:${SKUS.filter(s=>dec(s).lbl==='Needs Price').length}
 CATALOG: ${JSON.stringify(cat)}
