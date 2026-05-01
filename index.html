@@ -155,7 +155,14 @@ select.fsel:focus{border-color:var(--gold-dim)}
 .typing span{display:inline-block;width:5px;height:5px;background:var(--accent);border-radius:50%;margin-right:3px;animation:dot .9s infinite}
 .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
-.empty{text-align:center;padding:32px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;font-size:10px;text-transform:uppercase}
+.attach-wrap{border:1px dashed var(--muted);border-radius:3px;padding:12px;cursor:pointer;transition:border-color .15s;text-align:center}
+.attach-wrap:hover{border-color:var(--gold-dim);background:var(--gold-bg)}
+.attach-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--silver)}
+.attach-preview{display:flex;align-items:center;gap:10px;justify-content:center}
+.attach-preview img{max-height:60px;max-width:120px;border-radius:2px;object-fit:cover}
+.attach-preview .attach-name{font-size:12px;color:var(--light)}
+.attach-preview .attach-remove{color:var(--red);cursor:pointer;font-size:16px;padding:0 4px}
+.view-attach{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);cursor:pointer;text-decoration:underline}
 .tgold{color:var(--gold)}.tgreen{color:var(--green)}.tred{color:var(--red)}.tsilv{color:var(--silver)}.torange{color:var(--orange)}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--light);z-index:999;transform:translateY(50px);opacity:0;transition:all .25s;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
@@ -353,6 +360,15 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <div class="field"><label>Ship Status</label><select id="o-ss"><option>Processing</option><option>Shipped</option><option>Delivered</option></select></div>
       <div class="field"><label>Order Date</label><input id="o-date" type="date"></div>
       <div class="field s2"><label>Notes</label><textarea id="o-notes"></textarea></div>
+      <div class="field s2">
+        <label>Attach Invoice / Document</label>
+        <div id="o-attach-wrap" class="attach-wrap" onclick="document.getElementById('o-file').click()">
+          <input type="file" id="o-file" accept="image/*,.pdf" style="display:none" onchange="handleAttach('o')">
+          <div id="o-attach-label" class="attach-label">📎 Tap to attach invoice or photo</div>
+        </div>
+        <input type="hidden" id="o-attach-data">
+        <input type="hidden" id="o-attach-name">
+      </div>
     </div>
     <div class="mfooter">
       <button class="btn bdanger bsm" id="ord-delbtn" onclick="delOrder()" style="margin-right:auto;display:none">Delete</button>
@@ -378,6 +394,15 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <div class="field s2"><label>Reference</label><input id="l-ref" placeholder="Invoice # / Order #"></div>
       <div class="field"><label>Payment Status</label><select id="l-pay"><option>Paid</option><option>Pending</option><option>N/A</option></select></div>
       <div class="field s2"><label>Notes</label><textarea id="l-notes"></textarea></div>
+      <div class="field s2">
+        <label>Attach Invoice / Document</label>
+        <div id="l-attach-wrap" class="attach-wrap" onclick="document.getElementById('l-file').click()">
+          <input type="file" id="l-file" accept="image/*,.pdf" style="display:none" onchange="handleAttach('l')">
+          <div id="l-attach-label" class="attach-label">📎 Tap to attach invoice or photo</div>
+        </div>
+        <input type="hidden" id="l-attach-data">
+        <input type="hidden" id="l-attach-name">
+      </div>
     </div>
     <div class="mfooter">
       <button class="btn bdanger bsm" id="log-delbtn" onclick="delLog()" style="margin-right:auto;display:none">Delete Entry</button>
@@ -390,6 +415,54 @@ select.fsel:focus{border-color:var(--gold-dim)}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── FILE ATTACHMENTS ──
+function handleAttach(prefix){
+  const file=document.getElementById(prefix+'-file').files[0];
+  if(!file) return;
+  if(file.size>2*1024*1024){toast('File too large (max 2MB)','err');return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById(prefix+'-attach-data').value=e.target.result;
+    document.getElementById(prefix+'-attach-name').value=file.name;
+    const wrap=document.getElementById(prefix+'-attach-wrap');
+    const isImg=file.type.startsWith('image/');
+    wrap.querySelector('.attach-label').innerHTML='<div class="attach-preview">'
+      +(isImg?'<img src="'+e.target.result+'" alt="preview">':'<span style="font-size:24px">📄</span>')
+      +'<span class="attach-name">'+file.name+'</span>'
+      +'<span class="attach-remove" onclick="clearAttach(\''+prefix+'\');event.stopPropagation()">✕</span>'
+      +'</div>';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearAttach(prefix){
+  document.getElementById(prefix+'-attach-data').value='';
+  document.getElementById(prefix+'-attach-name').value='';
+  document.getElementById(prefix+'-file').value='';
+  document.getElementById(prefix+'-attach-label').innerHTML='📎 Tap to attach invoice or photo';
+}
+
+function loadAttachPreview(prefix, data, name){
+  if(!data||!name) return;
+  const isImg=name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+  document.getElementById(prefix+'-attach-data').value=data;
+  document.getElementById(prefix+'-attach-name').value=name;
+  document.getElementById(prefix+'-attach-label').innerHTML='<div class="attach-preview">'
+    +(isImg?'<img src="'+data+'" alt="preview">':'<span style="font-size:24px">📄</span>')
+    +'<span class="attach-name">'+name+'</span>'
+    +'<span class="attach-remove" onclick="clearAttach(\''+prefix+'\');event.stopPropagation()">✕</span>'
+    +'</div>';
+}
+
+function viewAttach(data, name){
+  const win=window.open();
+  if(name.match(/\.pdf$/i)){
+    win.document.write('<iframe src="'+data+'" style="width:100%;height:100vh;border:none"></iframe>');
+  } else {
+    win.document.write('<img src="'+data+'" style="max-width:100%;display:block;margin:auto">');
+  }
+}
+
 // ── PASSWORD ──
 const PASS = 'Jayhawks!03272021';
 function checkPW(){
@@ -431,6 +504,22 @@ const SD=[
   {id:'CCI-22LR-LRN-40-50-BLAZER',brand:'CCI',dept:'Ammunition',cat:'Handgun',subcat:'LRN',name:'Blazer .22 LR 40gr LRN - 50 Box',dist:'Midwest Gun Works',cost:null,ship:17.99,sell:null,margin:0.17,chan:'Website',alert:10},
   {id:'NOR-6.5PRC-143-BTHP-20',brand:'NORMA',dept:'Ammunition',cat:'Rifle',subcat:'BTHP',name:'6.5 PRC - 143gr BTHP - 20 Box',dist:'Midwest Gun Works',cost:34.99,ship:17.99,sell:null,margin:0.17,chan:'Website',alert:5},
   {id:'FED-22LR-RN-40-50-GM',brand:'Federal',dept:'Ammunition',cat:'Handgun',subcat:'RN',name:'Gold Medal .22 LR 40gr RN - 50 Box',dist:'Midwest Gun Works',cost:null,ship:17.99,sell:null,margin:0.17,chan:'Website',alert:10},
+  // ── BEAR CREEK ARSENAL ──
+  {id:'BCA-UP-556-16M4-PK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-15 5.56 NATO Complete Upper | 16" M4 Parkerized | 1:7 | Carbine Gas | 15" MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'Highest volume mover; universal demand'},
+  {id:'BCA-UP-300B-85-PK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-15 .300 Blackout Upper | 8.5" Parkerized Heavy | 1:8 | Pistol Gas | Talon MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'Top suppressor/SBR upper; strong margin'},
+  {id:'BCA-UP-223W-16M4-PK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-15 .223 Wylde Complete Upper | 16" M4 | 1:7 | Mid Gas | MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'Precision builders; accepts .223 & 5.56'},
+  {id:'BCA-UP-762X39-16-PK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-15 7.62x39 Complete Upper | 16" Heavy | 1:10 | Carbine Gas | 15" MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'AK caliber AR; loyal buyer niche'},
+  {id:'BCA-UP-556-16-RSCK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-15 5.56 NATO Right Side Charging Upper | 16" M4 | 1:7 | Mid Gas | 15" MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'BCA exclusive; strong differentiator SKU'},
+  {id:'BCA-UP-300B-85-RSCK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-15 .300 Blackout Right Side Charging Upper | 8.5" Heavy | 1:8 | Pistol Gas | Talon MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'BCA exclusive RSC; suppressor crowd'},
+  {id:'BCA-UP-22LR-16-PK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-22 .22 LR Complete Upper | 16" Parkerized Heavy | 1:16 | Blowback | MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'New shooters / training builds'},
+  {id:'BCA-UP-9MM-16-PK',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Complete Upper',subcat:'Upper',name:'BC-9 9mm Complete Upper | 16" Parkerized Heavy | 1:10 | Blowback | MLOK',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:1,notes:'PCC platform; GLOCK mag compatible'},
+  {id:'BCA-BCG-556-NIT',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Parts',subcat:'BCG',name:'BC-15 5.56 NATO Bolt Carrier Group | Black Nitride | Full Auto Cut',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:2,notes:'High attach rate; replacement demand'},
+  {id:'BCA-BCG-300B-NIT',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Parts',subcat:'BCG',name:'BC-15 .300 Blackout Bolt Carrier Group | Black Nitride',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.25,chan:'Website',alert:2,notes:'Pairs with 300 BLK uppers'},
+  {id:'BCA-LPK-AR15-STD',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Parts',subcat:'LPK',name:'BC-15 AR-15 Lower Parts Kit | Standard',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.22,chan:'Website',alert:2,notes:'No FFL; pairs with any stripped lower'},
+  {id:'BCA-BUF-CAR-KIT',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Parts',subcat:'Buffer',name:'AR-15 Carbine Buffer Kit | Buffer Tube, Spring & Buffer',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.22,chan:'Website',alert:2,notes:'Required for standard rifle builds'},
+  {id:'BCA-BUF-PST-KIT',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Parts',subcat:'Buffer',name:'AR-15 Pistol Buffer Kit | Pistol Tube, Spring & Buffer',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.22,chan:'Website',alert:2,notes:'Required for pistol builds; add w/ 300 BLK'},
+  {id:'BCA-MAG-556-30',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Accessories',subcat:'Magazine',name:'AR-15 5.56/.223 30-Round Magazine',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.28,chan:'Website',alert:5,notes:'Volume seller; repeat buyer item'},
+  {id:'BCA-MAG-300B-30',brand:'Bear Creek Arsenal',dept:'AR15',cat:'Accessories',subcat:'Magazine',name:'AR-15 .300 Blackout 30-Round Magazine',dist:'Bear Creek Arsenal',cost:null,ship:0,sell:null,margin:0.28,chan:'Website',alert:5,notes:'Pairs with 300 BLK uppers'},
 ];
 const OD=[{id:'ord-1',orderNum:2,date:'2026-04-13',cust:'Matt Enns',email:'',sku:'PMCX-556-55-FMJ-20',qty:25,price:300,ship:0,src:'Website',pay:'Payment Confirmed',shipStatus:'Delivered',notes:'Invoice total $321.00 including $21.00 sales tax.'}];
 const LD=[{id:'log-1',date:'2026-04-28',sku:'PMCX-556-55-FMJ-20',name:'PMC X-TAC 5.56 NATO 55gr FMJ - 20 Round Box',type:'IN',qty:25,cost:9.2,party:'2nd Amendment Wholesale',ref:'Invoice #2 / Matt Enns Order',pay:'Paid',notes:'Received 25 boxes.'}];
@@ -566,6 +655,7 @@ function renderLog(){
       <div><div class="lsku">${l.sku}</div><div class="lname">${l.name||''}</div>
         <div class="ldet">${l.party||''}${l.ref?' · '+l.ref:''}</div>
         ${l.notes?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${l.notes}</div>`:''}
+        ${l.attachName?`<div class="view-attach" onclick="event.stopPropagation();viewAttach('${l.attachData}','${l.attachName}')">📎 ${l.attachName}</div>`:''}
       </div>
       <div class="lqty ${l.type.toLowerCase()}">${l.type==='IN'?'+':'-'}${l.qty}</div>
       <div style="text-align:right"><span class="badge ${l.type==='IN'?'bg':'br'}">${l.type}</span>
@@ -740,6 +830,8 @@ function openMod(mid, rid){
     setSel('o-ss',o?(o.shipStatus||'Processing'):'Processing');
     document.getElementById('o-date').value=o?o.date:td();
     document.getElementById('o-notes').value=o?(o.notes||''):'';
+    clearAttach('o');
+    if(o&&o.attachData) loadAttachPreview('o',o.attachData,o.attachName);
   }
   if(mid==='mlog'){
     const l=LOGS.find(x=>x.id===rid);
@@ -755,6 +847,8 @@ function openMod(mid, rid){
     document.getElementById('l-ref').value=l?(l.ref||''):'';
     setSel('l-pay',l?(l.pay||'Paid'):'Paid');
     document.getElementById('l-notes').value=l?(l.notes||''):'';
+    clearAttach('l');
+    if(l&&l.attachData) loadAttachPreview('l',l.attachData,l.attachName);
   }
   document.getElementById(mid).classList.add('open');
 }
@@ -815,7 +909,9 @@ function saveOrder(){
     src:document.getElementById('o-src').value,
     pay:document.getElementById('o-pay').value,
     shipStatus:document.getElementById('o-ss').value,
-    notes:document.getElementById('o-notes').value
+    notes:document.getElementById('o-notes').value,
+    attachData:document.getElementById('o-attach-data').value||null,
+    attachName:document.getElementById('o-attach-name').value||null
   };
   if(eid){const i=ORDS.findIndex(o=>o.id===eid);if(i>=0)ORDS[i]=d;toast('Order updated');}
   else{ORDS.push(d);toast('Order saved');}
@@ -842,7 +938,9 @@ function saveLog(){
     party:document.getElementById('l-party').value,
     ref:document.getElementById('l-ref').value,
     pay:document.getElementById('l-pay').value,
-    notes:document.getElementById('l-notes').value
+    notes:document.getElementById('l-notes').value,
+    attachData:document.getElementById('l-attach-data').value||null,
+    attachName:document.getElementById('l-attach-name').value||null
   };
   if(eid){const i=LOGS.findIndex(l=>l.id===eid);if(i>=0)LOGS[i]=d;toast('Entry updated');}
   else{LOGS.push(d);toast('Movement logged');}
