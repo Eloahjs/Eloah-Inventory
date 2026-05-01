@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Eloah Tactical — Inventory Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0a0b0d;
+  --dark:#111318;
+  --panel:#161a21;
+  --panel2:#1c2029;
+  --border:#252b36;
+  --muted:#3a4252;
+  --silver:#8a93a3;
+  --light:#c8cfd8;
+  --white:#eef0f3;
+  --gold:#c8a84b;
+  --gold-dim:#8a7030;
+  --gold-bg:rgba(200,168,75,0.07);
+  --red:#c0392b;
+  --red-dim:rgba(192,57,43,0.15);
+  --green:#64b478;
+  --green-dim:rgba(100,180,120,0.12);
+  --accent:#4a7fb5;
+  --orange:#c8834b;
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--light);font-family:'Barlow',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(10,11,13,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(–border)}
+.nav-brand{display:flex;align-items:center;gap:12px}
+.nav-logo-text{font-family:‘Bebas Neue’,sans-serif;font-size:22px;letter-spacing:5px;color:var(–white);line-height:1;display:flex;align-items:center;gap:4px}
+.nav-cross{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;position:relative}
+.nav-cross::before,.nav-cross::after{content:’’;position:absolute;background:var(–gold)}
+.nav-cross::before{width:1px;height:100%}
+.nav-cross::after{width:100%;height:1px}
+.nav-cross-ring{position:absolute;width:12px;height:12px;border:1px solid var(–gold);border-radius:50%}
+.nav-sub{font-family:‘Barlow Condensed’,sans-serif;font-size:8px;letter-spacing:4px;color:var(–gold);text-transform:uppercase}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:6px 14px;border:1px solid transparent;border-radius:2px;cursor:pointer;color:var(–silver);background:none;transition:all .2s}
+.nav-tab:hover{color:var(–light);border-color:var(–muted)}
+.nav-tab.active{color:var(–gold);border-color:var(–gold-dim);background:var(–gold-bg)}
+
+/* LAYOUT */
+.app{margin-top:64px;min-height:calc(100vh - 64px)}
+.page{display:none;padding:32px}
+.page.active{display:block}
+
+/* DASHBOARD */
+.dash-header{margin-bottom:28px}
+.dash-title{font-family:‘Bebas Neue’,sans-serif;font-size:42px;letter-spacing:3px;color:var(–white);line-height:1}
+.dash-title span{color:var(–gold)}
+.dash-sub{font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:4px;color:var(–silver);text-transform:uppercase;margin-top:4px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:32px}
+.stat-card{background:var(–panel);border:1px solid var(–border);border-radius:4px;padding:18px 20px;position:relative;overflow:hidden}
+.stat-card::before{content:’’;position:absolute;top:0;left:0;right:0;height:2px;background:var(–muted)}
+.stat-card.gold::before{background:var(–gold)}
+.stat-card.green::before{background:var(–green)}
+.stat-card.red::before{background:var(–red)}
+.stat-card.accent::before{background:var(–accent)}
+.stat-label{font-family:‘Barlow Condensed’,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(–silver);margin-bottom:8px}
+.stat-value{font-family:‘Bebas Neue’,sans-serif;font-size:36px;letter-spacing:1px;color:var(–white);line-height:1}
+.stat-value.gold{color:var(–gold)}
+.stat-value.green{color:var(–green)}
+.stat-value.red{color:var(–red)}
+
+.section-label{font-family:‘Barlow Condensed’,sans-serif;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(–gold);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.section-label::after{content:’’;flex:1;height:1px;background:var(–border)}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border:1px solid var(–border);border-radius:4px;background:var(–panel)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-family:‘Barlow Condensed’,sans-serif;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(–silver);padding:10px 14px;text-align:left;border-bottom:1px solid var(–border);background:var(–panel2);white-space:nowrap}
+.tbl td{padding:10px 14px;border-bottom:1px solid rgba(37,43,54,0.5);color:var(–light);vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.badge{display:inline-block;font-family:‘Barlow Condensed’,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:2px;border:1px solid}
+.badge-green{color:var(–green);border-color:rgba(100,180,120,0.3);background:var(–green-dim)}
+.badge-red{color:#e05b4e;border-color:rgba(192,57,43,0.3);background:var(–red-dim)}
+.badge-gold{color:var(–gold);border-color:rgba(200,168,75,0.3);background:var(–gold-bg)}
+.badge-silver{color:var(–silver);border-color:var(–border);background:rgba(138,147,163,0.08)}
+.sku-code{font-family:‘Barlow Condensed’,sans-serif;font-size:12px;letter-spacing:1px;color:var(–accent)}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.search-box{flex:1;min-width:220px;position:relative}
+.search-box input{width:100%;background:var(–panel);border:1px solid var(–border);color:var(–light);padding:9px 14px 9px 36px;font-family:‘Barlow’,sans-serif;font-size:13px;border-radius:2px;outline:none;transition:border-color .2s}
+.search-box input::placeholder{color:var(–muted)}
+.search-box input:focus{border-color:var(–gold-dim)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(–muted);font-size:14px}
+select.filter-sel{background:var(–panel);border:1px solid var(–border);color:var(–silver);padding:9px 12px;font-family:‘Barlow Condensed’,sans-serif;font-size:12px;letter-spacing:1px;border-radius:2px;outline:none;cursor:pointer}
+select.filter-sel:focus{border-color:var(–gold-dim)}
+.btn{font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:9px 18px;border-radius:2px;border:1px solid;cursor:pointer;transition:all .2s}
+.btn-gold{background:var(–gold);color:#0a0b0d;border-color:var(–gold)}
+.btn-gold:hover{background:#e0bc5a;border-color:#e0bc5a}
+.btn-outline{background:transparent;color:var(–silver);border-color:var(–border)}
+.btn-outline:hover{color:var(–light);border-color:var(–silver)}
+.btn-danger{background:transparent;color:#e05b4e;border-color:rgba(192,57,43,0.4)}
+.btn-danger:hover{background:var(–red-dim)}
+.btn-sm{padding:6px 12px;font-size:10px}
+
+/* FORMS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(–panel);border:1px solid var(–border);border-radius:4px;width:90%;max-width:640px;max-height:90vh;overflow-y:auto;padding:28px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-title{font-family:‘Bebas Neue’,sans-serif;font-size:28px;letter-spacing:3px;color:var(–white)}
+.modal-close{background:none;border:none;color:var(–silver);font-size:20px;cursor:pointer;padding:4px}
+.modal-close:hover{color:var(–white)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.full{grid-template-columns:1fr}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-family:‘Barlow Condensed’,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(–silver)}
+.field input,.field select,.field textarea{background:var(–panel2);border:1px solid var(–border);color:var(–light);padding:9px 12px;font-family:‘Barlow’,sans-serif;font-size:13px;border-radius:2px;outline:none;transition:border-color .2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(–gold-dim)}
+.field input::placeholder{color:var(–muted)}
+.field select option{background:var(–dark)}
+.field textarea{resize:vertical;min-height:72px}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:20px;border-top:1px solid var(–border)}
+.field-full{grid-column:1/-1}
+
+/* AI CHAT */
+.ai-panel{background:var(–panel);border:1px solid var(–border);border-radius:4px;display:flex;flex-direction:column;height:calc(100vh - 160px);max-height:760px}
+.ai-header{padding:16px 20px;border-bottom:1px solid var(–border);display:flex;align-items:center;gap:12px}
+.ai-indicator{width:8px;height:8px;border-radius:50%;background:var(–green);box-shadow:0 0 6px var(–green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.ai-title{font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(–gold)}
+.ai-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.ai-messages::-webkit-scrollbar{width:4px}
+.ai-messages::-webkit-scrollbar-track{background:transparent}
+.ai-messages::-webkit-scrollbar-thumb{background:var(–muted);border-radius:2px}
+.msg{display:flex;gap:10px;align-items:flex-start}
+.msg-avatar{width:28px;height:28px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:‘Bebas Neue’,sans-serif;font-size:11px;letter-spacing:1px;flex-shrink:0}
+.msg.user .msg-avatar{background:var(–gold-bg);border:1px solid var(–gold-dim);color:var(–gold)}
+.msg.ai .msg-avatar{background:rgba(74,127,181,0.1);border:1px solid rgba(74,127,181,0.3);color:var(–accent)}
+.msg-body{flex:1}
+.msg-name{font-family:‘Barlow Condensed’,sans-serif;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(–muted);margin-bottom:4px}
+.msg-text{font-size:13px;line-height:1.65;color:var(–light)}
+.msg-text strong{color:var(–white);font-weight:500}
+.msg-text code{font-family:monospace;background:var(–panel2);padding:1px 5px;border-radius:2px;font-size:12px;color:var(–accent)}
+.msg-text ul{padding-left:18px;margin-top:6px}
+.msg-text li{margin-bottom:3px}
+.ai-input-row{padding:16px 20px;border-top:1px solid var(–border);display:flex;gap:10px}
+.ai-input-row textarea{flex:1;background:var(–panel2);border:1px solid var(–border);color:var(–light);padding:10px 14px;font-family:‘Barlow’,sans-serif;font-size:13px;border-radius:2px;outline:none;resize:none;height:44px;transition:border-color .2s;line-height:1.5}
+.ai-input-row textarea:focus{border-color:var(–gold-dim)}
+.ai-input-row textarea::placeholder{color:var(–muted)}
+.ai-send{background:var(–gold);border:none;color:#0a0b0d;padding:0 18px;border-radius:2px;cursor:pointer;font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;transition:background .2s;height:44px}
+.ai-send:hover{background:#e0bc5a}
+.ai-send:disabled{opacity:.4;cursor:not-allowed}
+.typing-dots span{display:inline-block;width:5px;height:5px;background:var(–accent);border-radius:50%;margin-right:3px;animation:dot-bounce .9s infinite}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes dot-bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* LOG PAGE */
+.log-entry{background:var(–panel);border:1px solid var(–border);border-radius:4px;padding:14px 18px;margin-bottom:8px;display:grid;grid-template-columns:120px 1fr auto auto;gap:16px;align-items:center}
+.log-date{font-family:‘Barlow Condensed’,sans-serif;font-size:12px;color:var(–silver);letter-spacing:1px}
+.log-detail{font-size:13px}
+.log-sku{font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:1px;color:var(–accent);margin-bottom:2px}
+.log-name{color:var(–light);font-size:13px}
+.log-qty{font-family:‘Bebas Neue’,sans-serif;font-size:20px;letter-spacing:1px}
+.log-qty.in{color:var(–green)}
+.log-qty.out{color:var(–red)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+.form-grid{grid-template-columns:1fr}
+.stats-grid{grid-template-columns:repeat(2,1fr)}
+.log-entry{grid-template-columns:1fr 1fr}
+nav{padding:0 16px}
+.page{padding:20px 16px}
+}
+
+/* UTIL */
+.text-gold{color:var(–gold)}
+.text-green{color:var(–green)}
+.text-red{color:var(–red)}
+.text-silver{color:var(–silver)}
+.text-right{text-align:right}
+.mt-24{margin-top:24px}
+.no-data{text-align:center;padding:40px;color:var(–muted);font-family:‘Barlow Condensed’,sans-serif;letter-spacing:2px;font-size:12px;text-transform:uppercase}
+
+/* TABS WITHIN PAGE */
+.inner-tabs{display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(–border);padding-bottom:0}
+.inner-tab{font-family:‘Barlow Condensed’,sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:8px 16px;cursor:pointer;color:var(–silver);border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:none;border-left:none;border-right:none;transition:all .2s}
+.inner-tab:hover{color:var(–light)}
+.inner-tab.active{color:var(–gold);border-bottom-color:var(–gold)}
+
+.profit-bar{height:4px;border-radius:2px;background:var(–muted);overflow:hidden;margin-top:4px;width:80px}
+.profit-fill{height:100%;border-radius:2px;background:var(–green)}
+.low-stock{color:var(–orange)}
+</style>
+
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div>
+      <div class="nav-logo-text">
+        E<span class="nav-cross"><span class="nav-cross-ring"></span></span>AH
+        <span style="margin-left:4px">TACTICAL</span>
+      </div>
+      <div class="nav-sub">Inventory Manager</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('catalog')">Catalog</button>
+    <button class="nav-tab" onclick="showPage('orders')">Orders</button>
+    <button class="nav-tab" onclick="showPage('log')">Log</button>
+    <button class="nav-tab" onclick="showPage('ai')">AI Assistant</button>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- DASHBOARD -->
+
+  <div id="page-dashboard" class="page active">
+    <div class="dash-header">
+      <div class="dash-title">OPERATIONS <span>DASHBOARD</span></div>
+      <div class="dash-sub">Eloah Tactical LLC — Real-time snapshot</div>
+    </div>
+    <div class="stats-grid" id="dash-stats"></div>
+
+```
+<div class="section-label">Recent Inventory Movement</div>
+<div class="table-wrap">
+  <table class="tbl" id="dash-log-table">
+    <thead><tr><th>Date</th><th>SKU</th><th>Product</th><th>Type</th><th>Qty</th><th>Distributor / Customer</th></tr></thead>
+    <tbody id="dash-log-body"></tbody>
+  </table>
+</div>
+
+<div class="section-label mt-24">Active Inventory (On Hand)</div>
+<div class="table-wrap">
+  <table class="tbl">
+    <thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>On Hand</th><th>Sell Price</th><th>Margin</th><th>Status</th></tr></thead>
+    <tbody id="dash-inventory-body"></tbody>
+  </table>
+</div>
+```
+
+  </div>
+
+  <!-- CATALOG -->
+
+  <div id="page-catalog" class="page">
+    <div class="dash-header">
+      <div class="dash-title">SKU <span>CATALOG</span></div>
+    </div>
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="cat-search" placeholder="Search SKU, product, brand…" oninput="renderCatalog()">
+      </div>
+      <select class="filter-sel" id="cat-dept" onchange="renderCatalog()">
+        <option value="">All Departments</option>
+        <option>Ammunition</option>
+        <option>AR15</option>
+        <option>Parts</option>
+      </select>
+      <select class="filter-sel" id="cat-dist" onchange="renderCatalog()">
+        <option value="">All Distributors</option>
+        <option>2nd Amendment Wholesale</option>
+        <option>Midwest Gun Works</option>
+        <option>Bear Creek Arsenal</option>
+        <option>AT3 Tactical</option>
+      </select>
+      <select class="filter-sel" id="cat-status" onchange="renderCatalog()">
+        <option value="">All Status</option>
+        <option value="Good Margin">Good Margin</option>
+        <option value="Needs Price">Needs Price</option>
+        <option value="Raise Price">Raise Price</option>
+      </select>
+      <button class="btn btn-gold" onclick="openModal('sku-modal')">+ Add SKU</button>
+    </div>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>Dept</th><th>Distributor</th><th>Cost</th><th>Sell</th><th>Margin</th><th>On Hand</th><th>Decision</th><th></th></tr></thead>
+        <tbody id="cat-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+
+  <div id="page-orders" class="page">
+    <div class="dash-header">
+      <div class="dash-title">ORDER <span>LOG</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-gold" onclick="openModal('order-modal')">+ New Order</button>
+      <div class="search-box" style="max-width:280px">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="ord-search" placeholder="Search orders…" oninput="renderOrders()">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr><th>Order #</th><th>Date</th><th>Customer</th><th>SKU</th><th>Qty</th><th>Total</th><th>Source</th><th>Payment</th><th>Ship Status</th><th>Notes</th></tr></thead>
+        <tbody id="ord-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOG -->
+
+  <div id="page-log" class="page">
+    <div class="dash-header">
+      <div class="dash-title">INVENTORY <span>LOG</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-gold" onclick="openModal('log-modal')">+ Log Movement</button>
+      <select class="filter-sel" id="log-type" onchange="renderLog()">
+        <option value="">IN + OUT</option>
+        <option value="IN">IN Only</option>
+        <option value="OUT">OUT Only</option>
+      </select>
+    </div>
+    <div id="log-entries"></div>
+  </div>
+
+  <!-- AI -->
+
+  <div id="page-ai" class="page">
+    <div class="dash-header">
+      <div class="dash-title">AI <span>ASSISTANT</span></div>
+      <div class="dash-sub">Powered by Claude — Ask about pricing, inventory, orders, or strategy</div>
+    </div>
+    <div class="ai-panel">
+      <div class="ai-header">
+        <div class="ai-indicator"></div>
+        <div class="ai-title">Claude — Eloah Tactical Intelligence</div>
+      </div>
+      <div class="ai-messages" id="ai-messages">
+        <div class="msg ai">
+          <div class="msg-avatar">ET</div>
+          <div class="msg-body">
+            <div class="msg-name">Claude</div>
+            <div class="msg-text">I'm your Eloah Tactical AI assistant. I have full context of your SKU catalog, inventory, orders, and distributor relationships. Ask me anything — pricing strategy, margin analysis, which SKUs to prioritize, reorder timing, or anything else about the business.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-input-row">
+        <textarea id="ai-input" placeholder="Ask about pricing, margins, inventory strategy…" onkeydown="aiKeydown(event)"></textarea>
+        <button class="ai-send" id="ai-send-btn" onclick="sendAI()">Send</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SKU MODAL -->
+
+<div class="modal-overlay" id="sku-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">ADD SKU</div>
+      <button class="modal-close" onclick="closeModal('sku-modal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>SKU *</label><input id="f-sku" placeholder="PMC-9-115-FMJ-50"></div>
+      <div class="field"><label>Vendor SKU</label><input id="f-vsku" placeholder="Optional"></div>
+      <div class="field"><label>Brand *</label><input id="f-brand" placeholder="PMC, Federal…"></div>
+      <div class="field"><label>Department</label>
+        <select id="f-dept"><option>Ammunition</option><option>AR15</option><option>Parts</option></select>
+      </div>
+      <div class="field field-full"><label>Product Name *</label><input id="f-name" placeholder="9mm - 115gr FMJ - 50 Box"></div>
+      <div class="field"><label>Category</label><input id="f-cat" placeholder="Handgun, Rifle…"></div>
+      <div class="field"><label>Subcategory</label><input id="f-subcat" placeholder="FMJ, JHP…"></div>
+      <div class="field"><label>Distributor</label>
+        <select id="f-dist"><option>2nd Amendment Wholesale</option><option>Midwest Gun Works</option><option>MGE Wholesale</option><option>BulkMunitions.com</option><option>Bear Creek Arsenal</option><option>AT3 Tactical</option></select>
+      </div>
+      <div class="field"><label>Distributor Cost ($)</label><input id="f-cost" type="number" step="0.01" placeholder="9.20"></div>
+      <div class="field"><label>Shipping Cost ($)</label><input id="f-ship" type="number" step="0.01" placeholder="11.99"></div>
+      <div class="field"><label>Sell Price ($)</label><input id="f-sell" type="number" step="0.01" placeholder="12.00"></div>
+      <div class="field"><label>Target Margin (%)</label><input id="f-margin" type="number" step="1" placeholder="17"></div>
+      <div class="field"><label>Sales Channel</label>
+        <select id="f-channel"><option>Website</option><option>GunBroker</option><option>Both</option></select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('sku-modal')">Cancel</button>
+      <button class="btn btn-gold" onclick="addSKU()">Add SKU</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER MODAL -->
+
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">NEW ORDER</div>
+      <button class="modal-close" onclick="closeModal('order-modal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Customer Name *</label><input id="o-customer" placeholder="John Smith"></div>
+      <div class="field"><label>Email</label><input id="o-email" placeholder="customer@email.com"></div>
+      <div class="field"><label>SKU *</label><input id="o-sku" placeholder="PMCX-556-55-FMJ-20"></div>
+      <div class="field"><label>Qty *</label><input id="o-qty" type="number" placeholder="25"></div>
+      <div class="field"><label>Sale Price ($)</label><input id="o-price" type="number" step="0.01" placeholder="300.00"></div>
+      <div class="field"><label>Shipping Charged ($)</label><input id="o-shipping" type="number" step="0.01" placeholder="0"></div>
+      <div class="field"><label>Source</label>
+        <select id="o-source"><option>Website</option><option>GunBroker</option><option>Direct</option></select>
+      </div>
+      <div class="field"><label>Payment Status</label>
+        <select id="o-pay"><option>Pending</option><option>GunTab Sent</option><option>Payment Confirmed</option></select>
+      </div>
+      <div class="field field-full"><label>Notes</label><textarea id="o-notes" placeholder="Invoice #, tax amount, special instructions…"></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('order-modal')">Cancel</button>
+      <button class="btn btn-gold" onclick="addOrder()">Save Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG MODAL -->
+
+<div class="modal-overlay" id="log-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">LOG MOVEMENT</div>
+      <button class="modal-close" onclick="closeModal('log-modal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Movement Type</label>
+        <select id="l-type"><option value="IN">IN — Received</option><option value="OUT">OUT — Sold / Shipped</option></select>
+      </div>
+      <div class="field"><label>Date</label><input id="l-date" type="date"></div>
+      <div class="field"><label>SKU *</label><input id="l-sku" placeholder="PMCX-556-55-FMJ-20"></div>
+      <div class="field"><label>Qty *</label><input id="l-qty" type="number" placeholder="25"></div>
+      <div class="field"><label>Unit Cost ($)</label><input id="l-cost" type="number" step="0.01" placeholder="9.20"></div>
+      <div class="field"><label>Distributor / Customer</label><input id="l-party" placeholder="2nd Amendment Wholesale"></div>
+      <div class="field field-full"><label>Reference</label><input id="l-ref" placeholder="Invoice # / Order #"></div>
+      <div class="field"><label>Payment Status</label>
+        <select id="l-pay"><option>Paid</option><option>Pending</option><option>N/A</option></select>
+      </div>
+      <div class="field field-full"><label>Notes</label><textarea id="l-notes"></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal('log-modal')">Cancel</button>
+      <button class="btn btn-gold" onclick="addLogEntry()">Log Movement</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA STORE =====================
+const DEFAULT_SKUS = [
+{"sku":"AG-9-115-FMJ-50","brand":"Aguila","dept":"Ammunition","cat":"Handgun","subcat":"FMJ","name":"9mm - 115gr FMJ - 50 Box","dist":"2nd Amendment Wholesale","cost":12.5,"ship":11.99,"sell":31.0,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"FEDP-9-124-JHP-20","brand":"Federal","dept":"Ammunition","cat":"Handgun","subcat":"JHP","name":"9mm - 124gr JHP - 20 Box","dist":"Midwest Gun Works","cost":17.99,"ship":17.99,"sell":null,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMC-9-115-JHP-20","brand":"PMC","dept":"Ammunition","cat":"Handgun","subcat":"JHP","name":"9mm - 115gr JHP - 20 Box","dist":"2nd Amendment Wholesale","cost":19.99,"ship":11.99,"sell":24.0,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMC-9-115-FMJ-50","brand":"PMC","dept":"Ammunition","cat":"Handgun","subcat":"FMJ","name":"9mm - 115gr FMJ - 50 Box","dist":"2nd Amendment Wholesale","cost":11.99,"ship":11.99,"sell":15.0,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMC-9-115-FMJ-1000C","brand":"PMC","dept":"Ammunition","cat":"Handgun","subcat":"FMJ","name":"9mm - 115gr FMJ - 1000 CASE","dist":"2nd Amendment Wholesale","cost":239.99,"ship":11.99,"sell":290.0,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMCX-556-55-FMJ-20","brand":"PMC","dept":"Ammunition","cat":"Rifle","subcat":"FMJ","name":"5.56 NATO - 55gr FMJ - 20 Box","dist":"2nd Amendment Wholesale","cost":9.2,"ship":11.99,"sell":12.0,"margin":0.17,"channel":"Website","qtyReceived":25,"qtySold":0},
+{"sku":"PMCX-556-55-FMJ-1000C","brand":"PMC","dept":"Ammunition","cat":"Rifle","subcat":"FMJ","name":"5.56 NATO - 55gr FMJ - 1000 CASE","dist":"2nd Amendment Wholesale","cost":479.99,"ship":11.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMCX-556-62-FMJ-20","brand":"PMC","dept":"Ammunition","cat":"Rifle","subcat":"FMJ","name":"5.56 NATO - 62gr FMJ - 20 Box","dist":"2nd Amendment Wholesale","cost":9.99,"ship":11.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMC-223-55-FMJ-20","brand":"PMC","dept":"Ammunition","cat":"Rifle","subcat":"FMJ","name":".223 Rem - 55gr FMJ - 20 Box","dist":"2nd Amendment Wholesale","cost":8.8,"ship":11.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"PMC-45ACP-230-FMJ-50","brand":"PMC","dept":"Ammunition","cat":"Handgun","subcat":"FMJ","name":".45 ACP - 230gr FMJ - 50 Box","dist":"2nd Amendment Wholesale","cost":21.99,"ship":11.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"NOR-556-FMJ-20","brand":"NORMA","dept":"Ammunition","cat":"Rifle","subcat":"FMJ","name":"5.56 NATO - 55gr FMJ - 20 Box","dist":"Midwest Gun Works","cost":13.99,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"NOR-300BLK-147-FMJ-20","brand":"NORMA","dept":"Ammunition","cat":"Rifle","subcat":"FMJ","name":"300 BLK - 147gr FMJ - 20 Box","dist":"Midwest Gun Works","cost":18.99,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"SIGS-9-115-JHP-20","brand":"SIG Sauer","dept":"Ammunition","cat":"Handgun","subcat":"JHP","name":"9mm - 115gr JHP - 20 Box","dist":"Midwest Gun Works","cost":16.99,"ship":17.99,"sell":null,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"HCD-9-115-FTX-25","brand":"Hornady","dept":"Ammunition","cat":"Handgun","subcat":"FTX","name":"9mm - 115gr FTX - 25 Box","dist":"Midwest Gun Works","cost":25.45,"ship":17.99,"sell":null,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"HCD-38-110-FTX-25","brand":"Hornady","dept":"Ammunition","cat":"Handgun","subcat":"FTX","name":".38 Special - 110gr FTX - 25 Box","dist":"Midwest Gun Works","cost":27.75,"ship":17.99,"sell":null,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"TIM-SAV-ACC-BLK","brand":"Timney","dept":"Parts","cat":"Universal","subcat":"","name":"Timney Trigger - Savage AccuTrigger Regular","dist":"Midwest Gun Works","cost":112.49,"ship":17.99,"sell":null,"margin":0.25,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"AT3-AR15-LBK-ENH-CTR-KIT","brand":"AT3 Tactical","dept":"AR15","cat":"AR15","subcat":"LPK","name":"AT3 Enhanced AR-15 Lower Build Kit w/ Magpul MOE Grip + CTR Stock","dist":"AT3 Tactical","cost":177.0,"ship":8.49,"sell":222.0,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"MGW-PARTS-AR15-556-16-BUDGET-UPPER","brand":"Parts","dept":"AR15","cat":"AR15","subcat":"Parts","name":"MGW AR15 5.56 16\" Budget Upper Receiver Assembly","dist":"Midwest Gun Works","cost":239.0,"ship":17.99,"sell":null,"margin":0.2,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"BCA-AR15-UPR-300BLK-16-SC-WHT","brand":"Bear Creek Arsenal","dept":"AR15","cat":"AR15","subcat":"UPR","name":"BCA AR-15 .300 Blackout 16\" Side Charging Upper - White Cerakote MLOK","dist":"Bear Creek Arsenal","cost":199.99,"ship":0,"sell":null,"margin":0.25,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"CCI-22LR-LRN-40-50-BLAZER","brand":"CCI","dept":"Ammunition","cat":"Handgun","subcat":"LRN","name":"Blazer .22 LR 40gr LRN - 50 Box","dist":"Midwest Gun Works","cost":null,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"WIN-9MM-115-FMJ-50","brand":"Winchester","dept":"Ammunition","cat":"Handgun","subcat":"FMJ","name":"9mm Luger - 115gr FMJ - 50 Box","dist":"Midwest Gun Works","cost":12.99,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"WIN-9MM-115-FMJ-1000C","brand":"Winchester","dept":"Ammunition","cat":"Handgun","subcat":"FMJ","name":"9mm Luger - 115gr FMJ - 1000 CASE","dist":"Midwest Gun Works","cost":259.8,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"FED-22LR-RN-40-50-GM","brand":"Federal","dept":"Ammunition","cat":"Handgun","subcat":"RN","name":"Gold Medal .22 LR 40gr RN - 50 Box","dist":"Midwest Gun Works","cost":null,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0},
+{"sku":"NOR-6.5PRC-143-BTHP-20","brand":"NORMA","dept":"Ammunition","cat":"Rifle","subcat":"BTHP","name":"6.5 PRC - 143gr BTHP - 20 Box","dist":"Midwest Gun Works","cost":34.99,"ship":17.99,"sell":null,"margin":0.17,"channel":"Website","qtyReceived":0,"qtySold":0}
+];
+
+const DEFAULT_ORDERS = [
+  {orderNum:2,date:"2026-04-13",customer:"Matt Enns",email:"",sku:"PMCX-556-55-FMJ-20",qty:25,price:300,shipping:0,source:"Website",payStatus:"Payment Confirmed",shipStatus:"Delivered",notes:"Invoice total $321.00 including $21.00 sales tax."}
+];
+
+const DEFAULT_LOG = [
+  {date:"2026-04-28",sku:"PMCX-556-55-FMJ-20",name:"PMC X-TAC 5.56 NATO 55gr FMJ - 20 Round Box",type:"IN",qty:25,unitCost:9.2,party:"2nd Amendment Wholesale",ref:"Invoice #2 / Matt Enns Order",payStatus:"Paid",notes:"Received 25 boxes."}
+];
+
+// Load from storage or defaults
+function load(key, def){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
+function save(key, data){ try{ localStorage.setItem(key, JSON.stringify(data)); }catch(e){} }
+
+let SKUS = load('et_skus', DEFAULT_SKUS);
+let ORDERS = load('et_orders', DEFAULT_ORDERS);
+let LOG = load('et_log', DEFAULT_LOG);
+
+function saveSKUS(){ save('et_skus', SKUS); }
+function saveOrders(){ save('et_orders', ORDERS); }
+function saveLog(){ save('et_log', LOG); }
+
+// ===================== HELPERS =====================
+function getQtyOnHand(sku){
+  const s = SKUS.find(x=>x.sku===sku);
+  if(!s) return 0;
+  const inQty = LOG.filter(l=>l.sku===sku&&l.type==='IN').reduce((a,b)=>a+(b.qty||0),0);
+  const outQty = LOG.filter(l=>l.sku===sku&&l.type==='OUT').reduce((a,b)=>a+(b.qty||0),0);
+  return inQty - outQty;
+}
+
+function calcDecision(sku){
+  const s = SKUS.find(x=>x.sku===sku);
+  if(!s||s.cost==null) return {label:'Needs Price',cls:'badge-silver'};
+  if(s.sell==null) return {label:'Needs Price',cls:'badge-silver'};
+  const minSell = (s.cost + (s.ship||0)) / (1 - (s.margin||0.17));
+  const net = s.sell - s.cost - (s.ship||0);
+  const m = s.sell > 0 ? net/s.sell : 0;
+  if(m < (s.margin||0.17)) return {label:'Raise Price',cls:'badge-red'};
+  return {label:'Good Margin',cls:'badge-green'};
+}
+
+function fmt$(v){ return v!=null&&v!==''?'$'+parseFloat(v).toFixed(2):'—'; }
+function fmtPct(v){ return v!=null&&v!==''?(parseFloat(v)*100).toFixed(1)+'%':'—'; }
+function today(){ return new Date().toISOString().slice(0,10); }
+
+// ===================== NAVIGATION =====================
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(id==='dashboard') renderDashboard();
+  if(id==='catalog') renderCatalog();
+  if(id==='orders') renderOrders();
+  if(id==='log') renderLog();
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard(){
+  const onHand = SKUS.filter(s=>getQtyOnHand(s.sku)>0);
+  const totalSkus = SKUS.length;
+  const totalQty = SKUS.reduce((a,s)=>a+getQtyOnHand(s.sku),0);
+  const goodMargin = SKUS.filter(s=>calcDecision(s.sku).label==='Good Margin').length;
+  const needsPrice = SKUS.filter(s=>calcDecision(s.sku).label==='Needs Price').length;
+  const totalRev = ORDERS.reduce((a,o)=>a+(o.price||0),0);
+  const totalOrders = ORDERS.length;
+  const pendingOrders = ORDERS.filter(o=>o.payStatus!=='Payment Confirmed'&&o.payStatus!=='Paid').length;
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card gold"><div class="stat-label">Total SKUs</div><div class="stat-value gold">${totalSkus}</div></div>
+    <div class="stat-card green"><div class="stat-label">Total On Hand</div><div class="stat-value green">${totalQty}</div></div>
+    <div class="stat-card accent"><div class="stat-label">Good Margin SKUs</div><div class="stat-value" style="color:var(--accent)">${goodMargin}</div></div>
+    <div class="stat-card"><div class="stat-label">Needs Pricing</div><div class="stat-value">${needsPrice}</div></div>
+    <div class="stat-card gold"><div class="stat-label">Total Revenue</div><div class="stat-value gold">$${totalRev.toFixed(0)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value">${totalOrders}</div></div>
+    <div class="stat-card ${pendingOrders>0?'red':''}"><div class="stat-label">Pending Orders</div><div class="stat-value ${pendingOrders>0?'red':''}">${pendingOrders}</div></div>
+  `;
+
+  // Recent log
+  const logBody = document.getElementById('dash-log-body');
+  const recent = [...LOG].reverse().slice(0,6);
+  logBody.innerHTML = recent.length ? recent.map(l=>`
+    <tr>
+      <td>${l.date}</td>
+      <td class="sku-code">${l.sku}</td>
+      <td>${l.name||''}</td>
+      <td><span class="badge ${l.type==='IN'?'badge-green':'badge-red'}">${l.type}</span></td>
+      <td><strong>${l.qty}</strong></td>
+      <td class="text-silver">${l.party||''}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="6" class="no-data">No log entries yet</td></tr>`;
+
+  // Active inventory
+  const inv = SKUS.filter(s=>getQtyOnHand(s.sku)>0);
+  const invBody = document.getElementById('dash-inventory-body');
+  invBody.innerHTML = inv.length ? inv.map(s=>{
+    const onH = getQtyOnHand(s.sku);
+    const dec = calcDecision(s.sku);
+    const netProfit = s.sell&&s.cost ? s.sell - s.cost - (s.ship||0) : null;
+    const m = s.sell&&s.sell>0&&netProfit!=null ? netProfit/s.sell : null;
+    return `<tr>
+      <td class="sku-code">${s.sku}</td>
+      <td>${s.name}</td>
+      <td class="text-silver">${s.brand}</td>
+      <td class="${onH<=5?'low-stock':''}">${onH}</td>
+      <td>${fmt$(s.sell)}</td>
+      <td>${m!=null?fmtPct(m):'—'}</td>
+      <td><span class="badge ${dec.cls}">${dec.label}</span></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7" class="no-data">No inventory on hand</td></tr>`;
+}
+
+// ===================== CATALOG =====================
+function renderCatalog(){
+  const q = (document.getElementById('cat-search').value||'').toLowerCase();
+  const dept = document.getElementById('cat-dept').value;
+  const dist = document.getElementById('cat-dist').value;
+  const status = document.getElementById('cat-status').value;
+
+  let rows = SKUS.filter(s=>{
+    if(q && !( s.sku.toLowerCase().includes(q)||s.name.toLowerCase().includes(q)||s.brand.toLowerCase().includes(q))) return false;
+    if(dept && s.dept !== dept) return false;
+    if(dist && s.dist !== dist) return false;
+    if(status && calcDecision(s.sku).label !== status) return false;
+    return true;
+  });
+
+  const body = document.getElementById('cat-body');
+  body.innerHTML = rows.length ? rows.map(s=>{
+    const dec = calcDecision(s.sku);
+    const onH = getQtyOnHand(s.sku);
+    const net = s.sell&&s.cost ? s.sell - s.cost - (s.ship||0) : null;
+    const m = s.sell&&net!=null ? net/s.sell : null;
+    return `<tr>
+      <td class="sku-code">${s.sku}</td>
+      <td style="max-width:240px;white-space:normal;font-size:12px">${s.name}</td>
+      <td class="text-silver">${s.brand}</td>
+      <td class="text-silver">${s.dept}</td>
+      <td class="text-silver" style="font-size:11px">${s.dist}</td>
+      <td>${fmt$(s.cost)}</td>
+      <td>${fmt$(s.sell)}</td>
+      <td>${m!=null?fmtPct(m):'—'}</td>
+      <td class="${onH>0?'text-green':''}">${onH}</td>
+      <td><span class="badge ${dec.cls}">${dec.label}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="deleteSKU('${s.sku}')">✕</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="11" class="no-data">No SKUs match filters</td></tr>`;
+}
+
+// ===================== ORDERS =====================
+function renderOrders(){
+  const q = (document.getElementById('ord-search').value||'').toLowerCase();
+  let rows = ORDERS.filter(o=>!q||(o.customer.toLowerCase().includes(q)||o.sku.toLowerCase().includes(q)||(o.orderNum+'').includes(q)));
+
+  const payClass = (p)=>p==='Payment Confirmed'||p==='Paid'?'badge-green':p==='Pending'?'badge-red':'badge-silver';
+  const shipClass = (s)=>s==='Delivered'||s==='Shipped'?'badge-green':s==='Processing'?'badge-gold':'badge-silver';
+
+  document.getElementById('ord-body').innerHTML = rows.length ? rows.map(o=>`
+    <tr>
+      <td class="text-gold">#${o.orderNum}</td>
+      <td>${o.date}</td>
+      <td>${o.customer}</td>
+      <td class="sku-code">${o.sku}</td>
+      <td>${o.qty}</td>
+      <td class="text-gold">${fmt$(o.price)}</td>
+      <td class="text-silver">${o.source||'—'}</td>
+      <td><span class="badge ${payClass(o.payStatus)}">${o.payStatus}</span></td>
+      <td><span class="badge ${shipClass(o.shipStatus||'')}">${o.shipStatus||'Pending'}</span></td>
+      <td style="font-size:11px;color:var(--silver);max-width:180px;white-space:normal">${o.notes||''}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="10" class="no-data">No orders yet</td></tr>`;
+}
+
+// ===================== LOG =====================
+function renderLog(){
+  const typeFilter = document.getElementById('log-type').value;
+  let entries = [...LOG].reverse().filter(l=>!typeFilter||l.type===typeFilter);
+  const cont = document.getElementById('log-entries');
+  cont.innerHTML = entries.length ? entries.map(l=>`
+    <div class="log-entry">
+      <div class="log-date">${l.date}<br><span style="font-size:10px;color:var(--muted)">${l.payStatus||''}</span></div>
+      <div class="log-detail">
+        <div class="log-sku">${l.sku}</div>
+        <div class="log-name">${l.name||''}</div>
+        <div style="font-size:11px;color:var(--silver);margin-top:3px">${l.party||''} ${l.ref?'· '+l.ref:''}</div>
+        ${l.notes?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${l.notes}</div>`:''}
+      </div>
+      <div class="log-qty ${l.type.toLowerCase()}">${l.type==='IN'?'+':'-'}${l.qty}</div>
+      <div><span class="badge ${l.type==='IN'?'badge-green':'badge-red'}">${l.type}</span>
+      ${l.unitCost?`<div style="font-size:11px;color:var(--silver);margin-top:4px">${fmt$(l.unitCost)}/unit</div>`:''}
+      </div>
+    </div>
+  `).join('') : `<div class="no-data">No log entries yet</div>`;
+}
+
+// ===================== ACTIONS =====================
+function addSKU(){
+  const sku = document.getElementById('f-sku').value.trim();
+  if(!sku){ alert('SKU is required'); return; }
+  if(SKUS.find(s=>s.sku===sku)){ alert('SKU already exists'); return; }
+  SKUS.push({
+    sku, vsku:document.getElementById('f-vsku').value,
+    brand:document.getElementById('f-brand').value,
+    dept:document.getElementById('f-dept').value,
+    name:document.getElementById('f-name').value,
+    cat:document.getElementById('f-cat').value,
+    subcat:document.getElementById('f-subcat').value,
+    dist:document.getElementById('f-dist').value,
+    cost:parseFloat(document.getElementById('f-cost').value)||null,
+    ship:parseFloat(document.getElementById('f-ship').value)||null,
+    sell:parseFloat(document.getElementById('f-sell').value)||null,
+    margin:parseFloat(document.getElementById('f-margin').value)/100||0.17,
+    channel:document.getElementById('f-channel').value,
+    qtyReceived:0, qtySold:0
+  });
+  saveSKUS();
+  closeModal('sku-modal');
+  renderCatalog();
+}
+
+function deleteSKU(sku){ if(confirm('Remove '+sku+'?')){ SKUS = SKUS.filter(s=>s.sku!==sku); saveSKUS(); renderCatalog(); } }
+
+function addOrder(){
+  const customer = document.getElementById('o-customer').value.trim();
+  const sku = document.getElementById('o-sku').value.trim();
+  if(!customer||!sku){ alert('Customer and SKU required'); return; }
+  const nextNum = ORDERS.length ? Math.max(...ORDERS.map(o=>o.orderNum||0))+1 : 1;
+  ORDERS.push({
+    orderNum:nextNum,
+    date:today(),
+    customer,
+    email:document.getElementById('o-email').value,
+    sku,
+    qty:parseInt(document.getElementById('o-qty').value)||1,
+    price:parseFloat(document.getElementById('o-price').value)||0,
+    shipping:parseFloat(document.getElementById('o-shipping').value)||0,
+    source:document.getElementById('o-source').value,
+    payStatus:document.getElementById('o-pay').value,
+    shipStatus:'Processing',
+    notes:document.getElementById('o-notes').value
+  });
+  saveOrders();
+  closeModal('order-modal');
+  renderOrders();
+}
+
+function addLogEntry(){
+  const sku = document.getElementById('l-sku').value.trim();
+  const qty = parseInt(document.getElementById('l-qty').value);
+  if(!sku||!qty){ alert('SKU and Qty required'); return; }
+  const skuData = SKUS.find(s=>s.sku===sku);
+  LOG.push({
+    date:document.getElementById('l-date').value||today(),
+    sku,
+    name:skuData?skuData.name:'',
+    type:document.getElementById('l-type').value,
+    qty,
+    unitCost:parseFloat(document.getElementById('l-cost').value)||null,
+    party:document.getElementById('l-party').value,
+    ref:document.getElementById('l-ref').value,
+    payStatus:document.getElementById('l-pay').value,
+    notes:document.getElementById('l-notes').value
+  });
+  saveLog();
+  closeModal('log-modal');
+  renderLog();
+}
+
+// ===================== MODALS =====================
+function openModal(id){
+  if(id==='log-modal') document.getElementById('l-date').value = today();
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+// ===================== AI ASSISTANT =====================
+function buildContext(){
+  const onHand = SKUS.map(s=>({sku:s.sku,name:s.name,brand:s.brand,dept:s.dept,dist:s.dist,cost:s.cost,ship:s.ship,sell:s.sell,margin:s.margin,onHand:getQtyOnHand(s.sku),decision:calcDecision(s.sku).label}));
+  const summary = {
+    totalSKUs: SKUS.length,
+    totalOnHand: SKUS.reduce((a,s)=>a+getQtyOnHand(s.sku),0),
+    goodMarginCount: onHand.filter(s=>s.decision==='Good Margin').length,
+    needsPricingCount: onHand.filter(s=>s.decision==='Needs Price').length,
+    totalRevenue: ORDERS.reduce((a,o)=>a+(o.price||0),0),
+    orderCount: ORDERS.length,
+    distributors:['2nd Amendment Wholesale ($11.99 flat ship)','Midwest Gun Works (variable)','MGE Wholesale ($20 flat)','BulkMunitions.com (variable)','Bear Creek Arsenal','AT3 Tactical'],
+    settings:{minProfitableNet:15, marginTarget:'17% minimum', noShipStates:'CA, IL, MA, NJ, NY, CT, HI', paymentProcessor:'GunTab', marketplace:'GunBroker', invoicing:'Wave (waveapps.com)'}
+  };
+  return `You are the AI assistant for Eloah Tactical LLC, a Nebraska-based order-on-demand firearms accessories and ammunition e-commerce business. You have full context of the business data below.
+
+BUSINESS SUMMARY:
+${JSON.stringify(summary, null, 2)}
+
+FULL SKU CATALOG (${SKUS.length} SKUs):
+${JSON.stringify(onHand, null, 2)}
+
+RECENT ORDERS (${ORDERS.length} total):
+${JSON.stringify(ORDERS.slice(-10), null, 2)}
+
+RECENT INVENTORY LOG (last ${Math.min(LOG.length,10)} entries):
+${JSON.stringify(LOG.slice(-10), null, 2)}
+
+You help with: pricing strategy, margin analysis, inventory decisions, reorder timing, distributor selection, GunBroker listing strategy, compliance (no-ship states), and general business operations. Be concise, tactical, and specific. Reference actual SKUs and numbers from the data above when relevant.`;
+}
+
+let aiHistory = [];
+
+async function sendAI(){
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value = '';
+
+  appendMsg('user', msg);
+  aiHistory.push({role:'user', content: msg});
+
+  const btn = document.getElementById('ai-send-btn');
+  btn.disabled = true;
+  const typingId = appendTyping();
+
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system: buildContext(),
+        messages: aiHistory
+      })
+    });
+    const data = await resp.json();
+    removeTyping(typingId);
+    const reply = data.content && data.content[0] ? data.content[0].text : 'Sorry, I could not get a response.';
+    aiHistory.push({role:'assistant', content: reply});
+    appendMsg('ai', reply);
+  }catch(e){
+    removeTyping(typingId);
+    appendMsg('ai','Error connecting to AI. Please try again.');
+  }
+  btn.disabled = false;
+  input.focus();
+}
+
+function appendMsg(role, text){
+  const msgs = document.getElementById('ai-messages');
+  const el = document.createElement('div');
+  el.className = 'msg '+role;
+  const initials = role==='user'?'YOU':'ET';
+  el.innerHTML = `
+    <div class="msg-avatar">${initials}</div>
+    <div class="msg-body">
+      <div class="msg-name">${role==='user'?'You':'Claude'}</div>
+      <div class="msg-text">${formatAIText(text)}</div>
+    </div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  return el;
+}
+
+let typingCounter = 0;
+function appendTyping(){
+  const id = 'typing-'+(++typingCounter);
+  const msgs = document.getElementById('ai-messages');
+  const el = document.createElement('div');
+  el.className = 'msg ai'; el.id = id;
+  el.innerHTML = `<div class="msg-avatar">ET</div><div class="msg-body"><div class="msg-name">Claude</div><div class="msg-text"><span class="typing-dots"><span></span><span></span><span></span></span></div></div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+function removeTyping(id){ const el = document.getElementById(id); if(el) el.remove(); }
+
+function formatAIText(t){
+  return t
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')
+    .replace(/^(.*)$/,'<p>$1</p>');
+}
+
+function aiKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendAI(); }
+}
+
+// ===================== INIT =====================
+renderDashboard();
+</script>
+
+</body>
+</html>
