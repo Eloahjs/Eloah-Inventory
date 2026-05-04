@@ -163,7 +163,20 @@ select.fsel:focus{border-color:var(--gold-dim)}
 .attach-preview .attach-name{font-size:12px;color:var(--light)}
 .attach-preview .attach-remove{color:var(--red);cursor:pointer;font-size:16px;padding:0 4px}
 .view-attach{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);cursor:pointer;text-decoration:underline}
-.tgold{color:var(--gold)}.tgreen{color:var(--green)}.tred{color:var(--red)}.tsilv{color:var(--silver)}.torange{color:var(--orange)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px;flex-shrink:0}
+.sync-dot.synced{background:var(--green);box-shadow:0 0 5px var(--green)}
+.sync-dot.syncing{background:var(--gold);animation:blink 1s infinite}
+.sync-dot.error{background:var(--red)}
+.sync-bar{display:flex;align-items:center;gap:6px;font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--silver);cursor:pointer;padding:4px 8px;border-radius:3px;border:1px solid transparent}
+.sync-bar:hover{border-color:var(--border);color:var(--light)}
+.gist-setup{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-top:16px;text-align:left}
+.gist-setup-title{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.gist-setup input{width:100%;background:var(--black);border:1px solid var(--border);color:var(--light);padding:9px 11px;font-family:'Barlow',sans-serif;font-size:12px;border-radius:3px;outline:none;margin-bottom:8px;-webkit-appearance:none}
+.gist-setup input:focus{border-color:var(--gold-dim)}
+.gist-setup input::placeholder{color:var(--muted)}
+.gist-steps{font-size:11px;color:var(--silver);line-height:2;margin-bottom:12px}
+.gist-steps a{color:var(--accent)}
+.gist-steps strong{color:var(--light)}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:10px 16px;font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--light);z-index:999;transform:translateY(50px);opacity:0;transition:all .25s;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.ok{border-color:rgba(100,180,120,0.4);color:var(--green)}
@@ -199,6 +212,11 @@ select.fsel:focus{border-color:var(--gold-dim)}
     <button class="ntab" onclick="goPage('log',this)">Log</button>
     <button class="ntab" onclick="goPage('calc',this)">Pricer</button>
     <button class="ntab" onclick="goPage('ai',this)">AI</button>
+    <div class="sync-bar" onclick="goPage('sync',this)" title="Sync status">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-label">Sync</span>
+    </div>
+  </div>
   </div>
 </nav>
 
@@ -236,7 +254,7 @@ select.fsel:focus{border-color:var(--gold-dim)}
     <button class="btn boutline bsm" onclick="exportCSV('orders')">↓ CSV</button>
     <button class="btn bgold" onclick="openMod('morder','')">+ New Order</button>
   </div>
-  <div class="twrap"><table class="tbl"><thead><tr><th>Order #</th><th>Date</th><th>Customer</th><th>SKU</th><th>Qty</th><th>Total</th><th>Source</th><th>Payment</th><th>Ship</th><th>Notes</th><th></th></tr></thead><tbody id="ord-body"></tbody></table></div>
+  <div class="twrap"><table class="tbl"><thead><tr><th>Order #</th><th>Date</th><th>Customer</th><th>SKU</th><th>Qty</th><th>Total</th><th>Per Unit</th><th>Tax</th><th>Source</th><th>Payment</th><th>Ship</th><th>Notes</th><th></th></tr></thead><tbody id="ord-body"></tbody></table></div>
 </div>
 
 <div id="page-log" class="page">
@@ -310,6 +328,48 @@ select.fsel:focus{border-color:var(--gold-dim)}
   </div>
 </div>
 
+<div id="page-sync" class="page">
+  <div class="ptitle">GITHUB <span>SYNC</span></div>
+  <div class="psub">Sync your data across all devices via GitHub Gist</div>
+  <div style="max-width:500px">
+    <div id="sync-status-card" style="background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px 20px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span class="sync-dot" id="sync-dot2"></span>
+        <span id="sync-status-text" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--silver)">Not configured</span>
+      </div>
+      <div id="sync-gist-link" style="font-size:12px;color:var(--muted)"></div>
+      <div id="sync-last-saved" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+      <button class="btn bgold" onclick="syncToGist()">↑ Push to GitHub</button>
+      <button class="btn boutline" onclick="syncFromGist()">↓ Pull from GitHub</button>
+      <button class="btn boutline" onclick="showGHSetup()">⚙ Configure Token</button>
+    </div>
+    <div id="gh-config-panel" style="display:none">
+      <div class="slabel">GitHub Configuration</div>
+      <div class="fgrid" style="margin-bottom:12px">
+        <div class="field s2">
+          <label>Personal Access Token</label>
+          <input id="gh-token-edit" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="field s2">
+          <label>Gist ID (auto-filled after first push)</label>
+          <input id="gh-gist-edit" type="text" placeholder="Will be created automatically">
+        </div>
+      </div>
+      <button class="btn bgold" onclick="saveGHConfig()">Save Configuration</button>
+      <button class="btn boutline" style="margin-left:8px" onclick="document.getElementById('gh-config-panel').style.display='none'">Cancel</button>
+    </div>
+    <div class="slabel" style="margin-top:24px">How Sync Works</div>
+    <div style="font-size:13px;color:var(--silver);line-height:2">
+      <strong style="color:var(--light)">Push to GitHub</strong> — saves your current data (SKUs, orders, log) to a private GitHub Gist<br>
+      <strong style="color:var(--light)">Pull from GitHub</strong> — loads the latest saved data onto this device<br>
+      <strong style="color:var(--light)">Your token</strong> stays on each device — never uploaded to GitHub<br>
+      <strong style="color:var(--light)">Auto-push</strong> happens every time you save a change
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <!-- SKU Modal -->
@@ -352,8 +412,16 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <div class="field"><label>Customer *</label><input id="o-cust"></div>
       <div class="field"><label>Email</label><input id="o-email"></div>
       <div class="field"><label>SKU *</label><input id="o-sku"></div>
-      <div class="field"><label>Qty *</label><input id="o-qty" type="number"></div>
-      <div class="field"><label>Sale Price ($)</label><input id="o-price" type="number" step="0.01"></div>
+      <div class="field"><label>Qty *</label><input id="o-qty" type="number" oninput="calcOrderUnit()"></div>
+      <div class="field"><label>Sale Price — Total Collected ($)</label><input id="o-price" type="number" step="0.01" oninput="calcOrderUnit()"></div>
+      <div class="field"><label>Tax Collected ($)</label><input id="o-tax" type="number" step="0.01" placeholder="0.00" oninput="calcOrderUnit()"></div>
+      <div class="field s2">
+        <div id="o-unit-calc" style="display:none;background:var(--panel2);border:1px solid var(--border);border-radius:3px;padding:10px 14px;font-size:13px;display:flex;gap:24px;flex-wrap:wrap">
+          <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Per Unit Price</span><span id="o-per-unit" style="color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
+          <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Your Revenue (excl. tax)</span><span id="o-revenue" style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
+          <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Tax (pass to state)</span><span id="o-tax-display" style="color:var(--silver);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
+        </div>
+      </div>
       <div class="field"><label>Shipping Charged ($)</label><input id="o-ship" type="number" step="0.01"></div>
       <div class="field"><label>Source</label><select id="o-src"><option>Website</option><option>Direct</option></select></div>
       <div class="field"><label>Payment Status</label><select id="o-pay"><option>Pending</option><option>GunTab Sent</option><option>Payment Confirmed</option><option>Paid</option></select></div>
@@ -415,6 +483,135 @@ select.fsel:focus{border-color:var(--gold-dim)}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── GITHUB GIST SYNC ──
+const GIST_FILENAME = 'eloah-tactical-inventory.json';
+
+function getGHToken(){ return localStorage.getItem('et_gh_token')||''; }
+function getGistId(){ return localStorage.getItem('et_gist_id')||''; }
+
+function saveGHConfig(){
+  const token = document.getElementById('gh-token-edit').value.trim();
+  const gist  = document.getElementById('gh-gist-edit').value.trim();
+  if(!token){ toast('Token is required','err'); return; }
+  localStorage.setItem('et_gh_token', token);
+  if(gist) localStorage.setItem('et_gist_id', gist);
+  const panel = document.getElementById('gh-config-panel');
+  if(panel) panel.style.display='none';
+  updateSyncUI();
+  toast('GitHub sync configured — pushing now…');
+  syncToGist();
+}
+
+function showGHSetup(){
+  const panel = document.getElementById('gh-config-panel');
+  panel.style.display = panel.style.display==='none'?'block':'none';
+  document.getElementById('gh-token-edit').value = getGHToken();
+  document.getElementById('gh-gist-edit').value  = getGistId();
+}
+
+function setSyncStatus(state, msg){
+  const dots = [document.getElementById('sync-dot'), document.getElementById('sync-dot2')];
+  dots.forEach(d=>{ if(d){ d.className='sync-dot '+state; } });
+  const lbl = document.getElementById('sync-label');
+  const txt = document.getElementById('sync-status-text');
+  if(lbl) lbl.textContent = state==='synced'?'Synced':state==='syncing'?'Syncing…':state==='error'?'Sync Error':'No Sync';
+  if(txt) txt.textContent = msg||lbl?.textContent||'';
+}
+
+function updateSyncUI(){
+  const token = getGHToken();
+  const gistId = getGistId();
+  const lastSaved = localStorage.getItem('et_last_sync');
+  const link = document.getElementById('sync-gist-link');
+  const lastEl = document.getElementById('sync-last-saved');
+  if(!token){
+    setSyncStatus('','Not configured — enter GitHub token below');
+    if(link) link.textContent='';
+    if(lastEl) lastEl.textContent='';
+  } else if(!gistId){
+    setSyncStatus('syncing','Token saved — push to create Gist');
+    if(link) link.textContent='';
+  } else {
+    setSyncStatus('synced','Connected to GitHub Gist');
+    if(link) link.innerHTML='<a href="https://gist.github.com/'+gistId+'" target="_blank" style="color:var(--accent)">View Gist ↗</a>';
+    if(lastEl) lastEl.textContent = lastSaved ? 'Last synced: '+lastSaved : '';
+  }
+}
+
+async function syncToGist(){
+  const token = getGHToken();
+  if(!token){ toast('Set up GitHub token first','err'); goPage('sync',null); return; }
+  setSyncStatus('syncing','Saving to GitHub…');
+  const data = JSON.stringify({skus:SKUS, orders:ORDS, logs:LOGS, savedAt:new Date().toISOString()});
+  const gistId = getGistId();
+  try{
+    let url, method;
+    if(gistId){
+      url='https://api.github.com/gists/'+gistId;
+      method='PATCH';
+    } else {
+      url='https://api.github.com/gists';
+      method='POST';
+    }
+    const body={
+      description:'Eloah Tactical Inventory Data',
+      public:false,
+      files:{[GIST_FILENAME]:{content:data}}
+    };
+    const r = await fetch(url,{
+      method,
+      headers:{'Authorization':'token '+token,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error('GitHub API error: '+r.status);
+    const d = await r.json();
+    if(!gistId) localStorage.setItem('et_gist_id', d.id);
+    const now = new Date().toLocaleString();
+    localStorage.setItem('et_last_sync', now);
+    setSyncStatus('synced','Synced to GitHub');
+    updateSyncUI();
+    toast('Synced to GitHub ✓');
+  } catch(e){
+    setSyncStatus('error','Sync failed — check token');
+    toast('Sync failed: '+e.message,'err');
+  }
+}
+
+async function syncFromGist(){
+  const token = getGHToken();
+  const gistId = getGistId();
+  if(!token||!gistId){ toast('Configure GitHub sync first','err'); return; }
+  setSyncStatus('syncing','Loading from GitHub…');
+  try{
+    const r = await fetch('https://api.github.com/gists/'+gistId,{
+      headers:{'Authorization':'token '+token}
+    });
+    if(!r.ok) throw new Error('GitHub API error: '+r.status);
+    const d = await r.json();
+    const content = d.files[GIST_FILENAME]?.content;
+    if(!content) throw new Error('No data found in Gist');
+    const parsed = JSON.parse(content);
+    if(parsed.skus)   SKUS = parsed.skus;
+    if(parsed.orders) ORDS = parsed.orders;
+    if(parsed.logs)   LOGS = parsed.logs;
+    save();
+    setSyncStatus('synced','Loaded from GitHub');
+    updateSyncUI();
+    renderDashboard();
+    toast('Data loaded from GitHub ✓');
+  } catch(e){
+    setSyncStatus('error','Pull failed');
+    toast('Pull failed: '+e.message,'err');
+  }
+}
+
+// Auto-push after every save
+const _origSave = save;
+function save(){
+  ss('et3_s',SKUS);ss('et3_o',ORDS);ss('et3_l',LOGS);
+  if(getGHToken()) syncToGist();
+}
+
 // ── FILE ATTACHMENTS ──
 function handleAttach(prefix){
   const file=document.getElementById(prefix+'-file').files[0];
@@ -469,14 +666,16 @@ function checkPW(){
   if(document.getElementById('pw-inp').value===PASS){
     document.getElementById('pw-gate').classList.add('hidden');
     sessionStorage.setItem('et_ok','1');
-    renderDashboard();
+    updateSyncUI();
+    if(getGHToken()) syncFromGist().then(()=>renderDashboard());
+    else renderDashboard();
   } else {
     document.getElementById('pw-err').textContent='Incorrect code';
     document.getElementById('pw-inp').value='';
     document.getElementById('pw-inp').focus();
   }
 }
-if(sessionStorage.getItem('et_ok')==='1') document.getElementById('pw-gate').classList.add('hidden');
+if(sessionStorage.getItem('et_ok')==='1'){ document.getElementById('pw-gate').classList.add('hidden'); updateSyncUI(); }
 
 // ── DATA ──
 const SD=[
@@ -556,6 +755,7 @@ function goPage(id,btn){
   document.getElementById('page-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
   if(id==='calc'){populateCalcSKUs();calcPrice();}
+  else if(id==='sync'){updateSyncUI();}
   else ({dashboard:renderDashboard,catalog:renderCatalog,orders:renderOrders,log:renderLog})[id]?.();
 }
 
@@ -636,7 +836,10 @@ function renderOrders(){
   document.getElementById('ord-body').innerHTML=rows.map(o=>`
     <tr onclick="openMod('morder','${o.id}')">
       <td class="tgold">#${o.orderNum}</td><td>${o.date}</td><td>${o.cust}</td>
-      <td class="skuc">${o.sku}</td><td>${o.qty}</td><td class="tgold">${f$(o.price)}</td>
+      <td class="skuc">${o.sku}</td><td>${o.qty}</td>
+      <td class="tgold">${f$(o.price)}</td>
+      <td class="tsilv">${o.qty?f$(o.price/o.qty):'—'}</td>
+      <td class="tsilv">${o.tax?f$(o.tax):'—'}</td>
       <td class="tsilv">${o.src||'—'}</td>
       <td><span class="badge ${pc(o.pay)}">${o.pay}</span></td>
       <td><span class="badge ${sc(o.shipStatus||'')}">${o.shipStatus||'—'}</span></td>
@@ -792,6 +995,24 @@ function applyToCatalog(price){
   renderCatalog();
 }
 
+// ── ORDER UNIT CALCULATOR ──
+function calcOrderUnit(){
+  const price=parseFloat(document.getElementById('o-price').value)||0;
+  const qty=parseInt(document.getElementById('o-qty').value)||0;
+  const tax=parseFloat(document.getElementById('o-tax').value)||0;
+  const calc=document.getElementById('o-unit-calc');
+  if(price&&qty){
+    calc.style.display='flex';
+    const perUnit=price/qty;
+    const revenue=price-tax;
+    document.getElementById('o-per-unit').textContent=f$(perUnit);
+    document.getElementById('o-revenue').textContent=f$(revenue);
+    document.getElementById('o-tax-display').textContent=tax?f$(tax):'$0.00';
+  } else {
+    calc.style.display='none';
+  }
+}
+
 // ── MODAL OPEN ──
 function openMod(mid, rid){
   if(mid==='msku'){
@@ -824,6 +1045,7 @@ function openMod(mid, rid){
     document.getElementById('o-sku').value=o?o.sku:'';
     document.getElementById('o-qty').value=o?o.qty:'';
     document.getElementById('o-price').value=o&&o.price!=null?o.price:'';
+    document.getElementById('o-tax').value=o&&o.tax!=null?o.tax:'';
     document.getElementById('o-ship').value=o&&o.ship!=null?o.ship:'';
     setSel('o-src',o?(o.src||'Website'):'Website');
     setSel('o-pay',o?(o.pay||'Pending'):'Pending');
@@ -832,6 +1054,7 @@ function openMod(mid, rid){
     document.getElementById('o-notes').value=o?(o.notes||''):'';
     clearAttach('o');
     if(o&&o.attachData) loadAttachPreview('o',o.attachData,o.attachName);
+    setTimeout(calcOrderUnit,50);
   }
   if(mid==='mlog'){
     const l=LOGS.find(x=>x.id===rid);
@@ -905,6 +1128,7 @@ function saveOrder(){
     cust,email:document.getElementById('o-email').value,
     sku,qty:parseInt(document.getElementById('o-qty').value)||1,
     price:parseFloat(document.getElementById('o-price').value)||0,
+    tax:parseFloat(document.getElementById('o-tax').value)||0,
     ship:parseFloat(document.getElementById('o-ship').value)||0,
     src:document.getElementById('o-src').value,
     pay:document.getElementById('o-pay').value,
