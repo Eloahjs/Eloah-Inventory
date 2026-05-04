@@ -418,7 +418,7 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <div class="field s2">
         <div id="o-unit-calc" style="display:none;background:var(--panel2);border:1px solid var(--border);border-radius:3px;padding:10px 14px;font-size:13px;display:flex;gap:24px;flex-wrap:wrap">
           <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Per Unit Price</span><span id="o-per-unit" style="color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
-          <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Your Revenue (excl. tax)</span><span id="o-revenue" style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
+          <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Your Revenue</span><span id="o-revenue" style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
           <div><span style="color:var(--silver);font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:2px">Tax (pass to state)</span><span id="o-tax-display" style="color:var(--silver);font-family:'Bebas Neue',sans-serif;font-size:22px">—</span></div>
         </div>
       </div>
@@ -1004,9 +1004,8 @@ function calcOrderUnit(){
   if(price&&qty){
     calc.style.display='flex';
     const perUnit=price/qty;
-    const revenue=price-tax;
     document.getElementById('o-per-unit').textContent=f$(perUnit);
-    document.getElementById('o-revenue').textContent=f$(revenue);
+    document.getElementById('o-revenue').textContent=f$(price);
     document.getElementById('o-tax-display').textContent=tax?f$(tax):'$0.00';
   } else {
     calc.style.display='none';
