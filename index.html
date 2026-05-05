@@ -344,7 +344,17 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <button class="btn bgold" onclick="syncToGist()">↑ Push to GitHub</button>
       <button class="btn boutline" onclick="syncFromGist()">↓ Pull from GitHub</button>
       <button class="btn boutline" onclick="showGHSetup()">⚙ Configure Token</button>
-      <button class="btn bdanger" onclick="resetToDefaults()">↺ Reset to Defaults</button>
+      <button class="btn bdanger" onclick="resetToDefaults()">↺ Reset SKUs to Defaults</button>
+    </div>
+    <div class="slabel">Backup & Restore</div>
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn boutline" onclick="exportBackup()">↓ Export My Data</button>
+      <button class="btn boutline" onclick="document.getElementById('import-file').click()">↑ Import Data</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
+    </div>
+    <div style="font-size:12px;color:var(--silver);line-height:1.8;margin-bottom:20px">
+      <strong style="color:var(--light)">Export</strong> saves your orders, log entries, and SKU edits to a JSON file on your device.<br>
+      <strong style="color:var(--light)">Import</strong> restores from that file — use this after a reset to get your data back.
     </div>
     <div id="gh-config-panel" style="display:none">
       <div class="slabel">GitHub Configuration</div>
@@ -1014,13 +1024,47 @@ function calcOrderUnit(){
 }
 
 function resetToDefaults(){
-  if(!confirm('This will reset ALL data (SKUs, orders, log) back to the built-in defaults and push to GitHub. Your current data will be overwritten. Continue?')) return;
+  if(!confirm('This resets your SKU catalog to the built-in defaults (all 39 SKUs). Your orders and log entries will be KEPT. Continue?')) return;
   SKUS=[...SD];
-  ORDS=[...OD];
-  LOGS=[...LD];
-  ss('et3_s',SKUS);ss('et3_o',ORDS);ss('et3_l',LOGS);
-  toast('Reset to defaults — pushing to GitHub…');
+  ss('et3_s',SKUS);
+  toast('SKUs reset — pushing to GitHub…');
   syncToGist().then(()=>{ renderDashboard(); renderCatalog(); });
+}
+
+function exportBackup(){
+  const data = {
+    exportedAt: new Date().toISOString(),
+    skus: SKUS,
+    orders: ORDS,
+    logs: LOGS
+  };
+  const blob = JSON.stringify(data, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(blob);
+  a.download = 'eloah-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('Backup downloaded');
+}
+
+function importBackup(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!confirm('Import data from ' + file.name + '? This will overwrite your current data.')) return;
+      if(data.skus)   { SKUS = data.skus;   ss('et3_s', SKUS); }
+      if(data.orders) { ORDS = data.orders; ss('et3_o', ORDS); }
+      if(data.logs)   { LOGS = data.logs;   ss('et3_l', LOGS); }
+      toast('Data imported — pushing to GitHub…');
+      syncToGist().then(()=>{ renderDashboard(); renderCatalog(); renderOrders(); renderLog(); });
+    } catch(err){
+      toast('Import failed — invalid file','err');
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
 }
 
 // ── MODAL OPEN ──
