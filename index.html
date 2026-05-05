@@ -344,6 +344,7 @@ select.fsel:focus{border-color:var(--gold-dim)}
       <button class="btn bgold" onclick="syncToGist()">↑ Push to GitHub</button>
       <button class="btn boutline" onclick="syncFromGist()">↓ Pull from GitHub</button>
       <button class="btn boutline" onclick="showGHSetup()">⚙ Configure Token</button>
+      <button class="btn bdanger" onclick="resetToDefaults()">↺ Reset to Defaults</button>
     </div>
     <div id="gh-config-panel" style="display:none">
       <div class="slabel">GitHub Configuration</div>
@@ -1010,6 +1011,16 @@ function calcOrderUnit(){
   } else {
     calc.style.display='none';
   }
+}
+
+function resetToDefaults(){
+  if(!confirm('This will reset ALL data (SKUs, orders, log) back to the built-in defaults and push to GitHub. Your current data will be overwritten. Continue?')) return;
+  SKUS=[...SD];
+  ORDS=[...OD];
+  LOGS=[...LD];
+  ss('et3_s',SKUS);ss('et3_o',ORDS);ss('et3_l',LOGS);
+  toast('Reset to defaults — pushing to GitHub…');
+  syncToGist().then(()=>{ renderDashboard(); renderCatalog(); });
 }
 
 // ── MODAL OPEN ──
